@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-control · skill manager</title>
+<style>
+  :root{
+    --ink:#0f1216; --panel:#161b21; --panel-2:#1c232b; --line:#2a333d;
+    --text:#d8dee5; --dim:#8d99a6; --brass:#c9a15a; --brass-dim:#8a713f;
+    --ok:#7fb069; --danger:#c26d5c; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);font-size:14px}
+  ::selection{background:var(--brass);color:#141414}
+
+  /* header — stamped toolplate */
+  header{display:flex;align-items:baseline;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);
+         background:linear-gradient(180deg,#171d24,#12171d)}
+  header h1{margin:0;font:600 15px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase}
+  header h1 b{color:var(--brass);font-weight:600}
+  header .root{font:12px var(--mono);color:var(--dim);margin-left:auto}
+  header .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--dim)}
+  header .dot.on{background:var(--ok)}
+
+  main{display:grid;grid-template-columns:300px 1fr 380px;height:calc(100vh - 49px)}
+  @media (max-width:1100px){ main{grid-template-columns:260px 1fr}.chat{display:none} }
+
+  /* left: the drawer spine */
+  .side{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .side .bar{display:flex;gap:8px;padding:12px}
+  .side input[type=search]{flex:1;background:var(--ink);border:1px solid var(--line);color:var(--text);
+      border-radius:6px;padding:7px 10px;font:13px var(--mono)}
+  .side input:focus{outline:1px solid var(--brass)}
+  .list{overflow-y:auto;flex:1;padding:0 8px 16px}
+  .group{font:11px var(--mono);letter-spacing:.18em;color:var(--dim);text-transform:uppercase;
+         padding:14px 8px 6px;border-bottom:1px dashed var(--line);margin-bottom:6px}
+  .drawer{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:transparent;
+      border:1px solid transparent;border-left:2px solid var(--line);color:var(--text);
+      padding:8px 10px;margin:2px 0;border-radius:0 6px 6px 0;cursor:pointer}
+  .drawer:hover{background:var(--panel-2)}
+  .drawer.sel{background:var(--panel-2);border-left-color:var(--brass)}
+  .drawer .pip{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;
+      background:var(--ok);box-shadow:0 0 0 2px rgba(127,176,105,.15)}
+  .drawer.off .pip{background:var(--line);box-shadow:none}
+  .drawer .nm{font:600 13px var(--mono)}
+  .drawer.off .nm{color:var(--dim);text-decoration:line-through}
+  .drawer .ds{color:var(--dim);font-size:12px;line-height:1.35;margin-top:2px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* center: editor bench */
+  .bench{display:flex;flex-direction:column;min-width:0;min-height:0}
+  .benchbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .benchbar .title{font:600 14px var(--mono);color:var(--brass)}
+  .benchbar .path{font:11px var(--mono);color:var(--dim)}
+  .tabs{display:flex;gap:4px;padding:8px 16px 0;flex-wrap:wrap}
+  .tab{font:12px var(--mono);color:var(--dim);background:transparent;border:1px solid var(--line);
+      border-bottom:none;border-radius:6px 6px 0 0;padding:5px 10px;cursor:pointer}
+  .tab.sel{color:var(--text);background:var(--panel);border-color:var(--brass-dim)}
+  textarea.editor{flex:1;margin:0 16px 12px;background:var(--panel);border:1px solid var(--line);
+      color:var(--text);border-radius:0 6px 6px 6px;padding:14px;font:13px/1.55 var(--mono);
+      resize:none;white-space:pre;overflow:auto}
+  textarea.editor:focus{outline:1px solid var(--brass-dim)}
+  .empty{margin:auto;color:var(--dim);text-align:center;max-width:420px;line-height:1.6}
+  .empty b{color:var(--brass)}
+
+  /* right: claude drawer */
+  .chat{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .chat .head{padding:12px 14px;border-bottom:1px solid var(--line);font:600 12px var(--mono);
+      letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .chat .head b{color:var(--brass)}
+  .msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .msg{border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.5;
+      white-space:pre-wrap;word-break:break-word}
+  .msg.user{background:var(--panel-2);border-left:2px solid var(--brass)}
+  .msg.claude{background:var(--ink)}
+  .msg .who{font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+  .chat form{padding:10px 14px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .chat label{font:12px var(--sans);color:var(--dim);display:flex;gap:6px;align-items:center}
+  .chat textarea{background:var(--ink);border:1px solid var(--line);color:var(--text);border-radius:6px;
+      padding:9px 10px;font:13px var(--mono);min-height:64px;resize:vertical}
+  .chat textarea:focus{outline:1px solid var(--brass)}
+
+  /* buttons */
+  button{font:12px var(--mono);letter-spacing:.04em;border-radius:6px;border:1px solid var(--line);
+      background:var(--panel-2);color:var(--text);padding:7px 12px;cursor:pointer}
+  button:hover{border-color:var(--brass-dim)}
+  button:focus-visible{outline:2px solid var(--brass);outline-offset:1px}
+  button.primary{background:var(--brass);border-color:var(--brass);color:#171310;font-weight:700}
+  button.primary:hover{filter:brightness(1.07)}
+  button.danger{color:var(--danger);border-color:#5a3a34}
+  button:disabled{opacity:.5;cursor:default}
+  .spacer{flex:1}
+
+  /* toast + modal */
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel-2);
+      border:1px solid var(--brass-dim);color:var(--text);padding:9px 16px;border-radius:8px;
+      font:12px var(--mono);opacity:0;pointer-events:none;transition:opacity .2s}
+  #toast.show{opacity:1}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;
+      padding:20px;width:min(440px,90vw)}
+  dialog::backdrop{background:rgba(8,10,12,.7)}
+  dialog h3{margin:0 0 12px;font:600 13px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+  dialog input,dialog textarea{width:100%;background:var(--ink);border:1px solid var(--line);color:var(--text);
+      border-radius:6px;padding:8px 10px;font:13px var(--mono);margin-bottom:10px}
+  .row{display:flex;gap:8px;justify-content:flex-end}
+</style>
+</head>
+<body>
+<header>
+  <h1>claude<b>·control</b> — skill manager</h1>
+  <span class="root" id="status"><span class="dot" id="cliDot"></span>claude cli
+    &nbsp;<span class="dot" id="keyDot"></span>api key</span>
+  <span class="root" id="rootPath">loading…</span>
+</header>
+
+<main>
+  <!-- drawer spine -->
+  <aside class="side">
+    <div class="bar">
+      <input type="search" id="search" placeholder="filter skills…" aria-label="Filter skills">
+      <button class="primary" id="newBtn" title="Create a new skill">+ new</button>
+    </div>
+    <nav class="list" id="list" aria-label="Skills"></nav>
+  </aside>
+
+  <!-- editor bench -->
+  <section class="bench" id="bench">
+    <div class="empty" id="empty">
+      <p><b>Pick a skill</b> from the spine on the left, or create a new one.</p>
+      <p>Green pip = enabled (lives in the skills root). Grey = disabled (moved to <code>.disabled/</code>,
+      invisible to Claude Code until re-enabled). Deletes are soft — skills go to <code>.trash/</code>.</p>
+    </div>
+    <div id="editorWrap" style="display:none;flex:1;flex-direction:column;min-height:0">
+      <div class="benchbar">
+        <span class="title" id="skillName"></span>
+        <span class="path" id="skillPath"></span>
+        <span class="spacer"></span>
+        <button id="saveBtn" class="primary">save file</button>
+        <button id="toggleBtn">disable</button>
+        <button id="deleteBtn" class="danger">delete</button>
+      </div>
+      <div class="tabs" id="tabs"></div>
+      <textarea class="editor" id="editor" spellcheck="false" aria-label="File editor"></textarea>
+    </div>
+  </section>
+
+  <!-- claude drawer -->
+  <aside class="chat">
+    <div class="head">ask <b>claude</b> in here</div>
+    <div class="msgs" id="msgs"></div>
+    <form id="chatForm">
+      <label><input type="checkbox" id="ctxBox" checked>
+        include selected SKILL.md as context</label>
+      <textarea id="chatInput" placeholder="e.g. tighten this skill's description so it triggers more reliably"></textarea>
+      <div class="row">
+        <button type="button" id="clearChat">clear</button>
+        <button class="primary" id="sendBtn" type="submit">send</button>
+      </div>
+    </form>
+  </aside>
+</main>
+
+<div id="toast" role="status"></div>
+
+<dialog id="newDlg">
+  <h3>New skill</h3>
+  <input id="newName" placeholder="skill-name (lowercase, dashes)" autocomplete="off">
+  <textarea id="newDesc" rows="3" placeholder="Description — what it does AND when Claude should use it"></textarea>
+  <div class="row"><button id="newCancel" type="button">cancel</button>
+  <button class="primary" id="newCreate" type="button">create</button></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+let skills = [], selected = null, curFile = "SKILL.md", dirty = false;
+let chat = []; // {role, content}
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2600); }
+
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(()=>({error:"bad response"}));
+  if(!r.ok) throw new Error(data.error || r.status);
+  return data;
+}
+
+/* ---------- list ---------- */
+async function refresh(keepSel=true){
+  const data = await api("/api/skills");
+  skills = data.skills;
+  $("#rootPath").textContent = data.root;
+  $("#cliDot").classList.toggle("on", data.cli);
+  $("#keyDot").classList.toggle("on", data.api_key);
+  renderList();
+  if(keepSel && selected && !skills.some(s=>s.name===selected)) closeEditor();
+}
+
+function renderList(){
+  const q = $("#search").value.trim().toLowerCase();
+  const list = $("#list"); list.innerHTML = "";
+  const groups = [["enabled", skills.filter(s=>s.enabled)],
+                  ["disabled", skills.filter(s=>!s.enabled)]];
+  for(const [label, items] of groups){
+    const vis = items.filter(s => !q || s.name.includes(q) ||
+                 (s.description||"").toLowerCase().includes(q));
+    if(!vis.length) continue;
+    const g = document.createElement("div"); g.className="group";
+    g.textContent = label + " · " + vis.length; list.appendChild(g);
+    for(const s of vis){
+      const b = document.createElement("button");
+      b.className = "drawer" + (s.enabled?"":" off") + (s.name===selected?" sel":"");
+      b.innerHTML = `<span class="pip"></span><span><span class="nm"></span><div class="ds"></div></span>`;
+      b.querySelector(".nm").textContent = s.name;
+      b.querySelector(".ds").textContent = s.description || "(no description)";
+      b.onclick = () => select(s.name);
+      list.appendChild(b);
+    }
+  }
+  if(!list.children.length){
+    const g=document.createElement("div"); g.className="group";
+    g.textContent = q ? "no matches" : "no skills yet — hit + new";
+    list.appendChild(g);
+  }
+}
+
+/* ---------- editor ---------- */
+function skill(){ return skills.find(s=>s.name===selected); }
+
+async function select(name){
+  if(dirty && !confirm("Discard unsaved changes?")) return;
+  selected = name; curFile = "SKILL.md"; dirty = false;
+  await openFile();
+  renderList();
+}
+
+async function openFile(){
+  const s = skill(); if(!s) return;
+  $("#empty").style.display = "none";
+  $("#editorWrap").style.display = "flex";
+  $("#skillName").textContent = "/" + s.name;
+  $("#skillPath").textContent = s.path;
+  $("#toggleBtn").textContent = s.enabled ? "disable" : "enable";
+  const tabs = $("#tabs"); tabs.innerHTML = "";
+  for(const f of s.files){
+    const t = document.createElement("button");
+    t.className = "tab" + (f===curFile?" sel":"");
+    t.textContent = f;
+    t.onclick = async () => {
+      if(dirty && !confirm("Discard unsaved changes?")) return;
+      curFile = f; dirty=false; await openFile();
+    };
+    tabs.appendChild(t);
+  }
+  try{
+    const d = await api(`/api/skill?name=${encodeURIComponent(s.name)}&file=${encodeURIComponent(curFile)}`);
+    $("#editor").value = d.content;
+  }catch(e){ $("#editor").value = ""; toast("open failed: " + e.message); }
+}
+
+function closeEditor(){
+  selected = null; dirty = false;
+  $("#editorWrap").style.display = "none";
+  $("#empty").style.display = "block";
+}
+
+$("#editor").addEventListener("input", ()=> dirty = true);
+
+$("#saveBtn").onclick = async () => {
+  const s = skill(); if(!s) return;
+  try{
+    await api("/api/skill", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name:s.name, file:curFile, content:$("#editor").value})});
+    dirty = false; toast("saved " + curFile);
+    if(curFile==="SKILL.md") refresh();
+  }catch(e){ toast("save failed: " + e.message); }
+};
+
+$("#toggleBtn").onclick = async () => {
+  const s = skill(); if(!s) return;
+  try{
+    const d = await api("/api/toggle", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name:s.name})});
+    toast(s.name + (d.enabled ? " enabled" : " disabled"));
+    await refresh(); await openFile();
+  }catch(e){ toast("toggle failed: " + e.message); }
+};
+
+$("#deleteBtn").onclick = async () => {
+  const s = skill(); if(!s) return;
+  if(!confirm(`Move "${s.name}" to .trash/? (soft delete — recoverable by hand)`)) return;
+  try{
+    await api("/api/delete", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name:s.name})});
+    toast(s.name + " moved to .trash/"); closeEditor(); refresh(false);
+  }catch(e){ toast("delete failed: " + e.message); }
+};
+
+/* ---------- new skill ---------- */
+$("#newBtn").onclick = () => { $("#newName").value=""; $("#newDesc").value=""; $("#newDlg").showModal(); };
+$("#newCancel").onclick = () => $("#newDlg").close();
+$("#newCreate").onclick = async () => {
+  try{
+    const d = await api("/api/skill/new", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name:$("#newName").value.trim(), description:$("#newDesc").value.trim()})});
+    $("#newDlg").close(); await refresh(); select(d.name); toast("created " + d.name);
+  }catch(e){ toast(e.message); }
+};
+
+/* ---------- claude chat ---------- */
+function addMsg(role, content){
+  const m = document.createElement("div");
+  m.className = "msg " + (role==="user"?"user":"claude");
+  const who = document.createElement("div"); who.className="who";
+  who.textContent = role==="user" ? "you" : "claude";
+  const body = document.createElement("div"); body.textContent = content;
+  m.appendChild(who); m.appendChild(body);
+  $("#msgs").appendChild(m); $("#msgs").scrollTop = 1e9;
+}
+
+$("#chatForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const input = $("#chatInput"); const text = input.value.trim();
+  if(!text) return;
+  let userContent = text;
+  if($("#ctxBox").checked && selected){
+    userContent = "Context — the skill I'm working on (" + selected + "/" + curFile + "):\n\n"
+      + $("#editor").value.slice(0, 24000) + "\n\n---\n\n" + text;
+  }
+  chat.push({role:"user", content:userContent});
+  addMsg("user", text + (($("#ctxBox").checked && selected)?"  ⌁ [+" + selected + " context]":""));
+  input.value = ""; $("#sendBtn").disabled = true; $("#sendBtn").textContent = "thinking…";
+  try{
+    const d = await api("/api/claude", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({messages: chat})});
+    chat.push({role:"assistant", content:d.reply});
+    addMsg("claude", d.reply);
+    $(".chat .head").innerHTML = "ask <b>claude</b> · via " + d.backend;
+  }catch(e){
+    chat.pop(); addMsg("claude", "⚠ " + e.message);
+  }finally{
+    $("#sendBtn").disabled = false; $("#sendBtn").textContent = "send";
+  }
+});
+
+$("#clearChat").onclick = () => { chat = []; $("#msgs").innerHTML=""; };
+
+$("#search").addEventListener("input", renderList);
+window.addEventListener("beforeunload", (e)=>{ if(dirty){ e.preventDefault(); e.returnValue=""; }});
+
+refresh().catch(e => toast("cannot reach server: " + e.message));
+</script>
+</body>
+</html>
