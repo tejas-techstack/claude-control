@@ -10,7 +10,8 @@ Stars are marketing; maintenance is truth. Read `../_shared/GUARDRAILS.md` first
 ## Workflow
 1. Sharpen the need into capabilities ("parse cron expressions in Go, stdlib-style API") — search capabilities, not vibes.
 2. Search: GitHub search (web or `https://api.github.com/search/repositories?q=...` — no key needed for light use), plus awesome-lists and topic pages for the domain. Collect 5-10 candidates.
-3. Score each candidate on the quality bar:
+   - Shortcut: `python3 scripts/repo_health.py --search "cron parser language:go"` (or pass explicit `owner/repo` names) fetches and **scores** candidates on the signals below, then ranks them. Set `GITHUB_TOKEN` to raise the rate limit; `--json` to pipe into a comparison.
+3. Score each candidate on the quality bar (`repo_health.py` automates most of this):
    - **Alive**: last commit / release recency; issues get responses; not "looking for maintainers".
    - **Tested**: real test directory, CI badge that passes.
    - **Adopted**: downloads (npm/PyPI/crates), dependents, who uses it in production.

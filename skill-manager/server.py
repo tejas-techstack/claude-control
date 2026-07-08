@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,6 +30,12 @@ STATIC = Path(__file__).parent / "static"
 DEFAULT_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 
 ROOT = Path.home() / ".claude" / "skills"  # overridden by --root
+
+# claude-control lives one level up from this file (skill-manager/ and tools/ are siblings).
+CTRL_DIR = Path(__file__).resolve().parent.parent
+SKILLSOURCE = CTRL_DIR / "tools" / "skillsource.py"
+MANIFEST = CTRL_DIR / "skill-sources.txt"
+EXTERNAL_LOCK = CTRL_DIR / "external" / "installed.json"
 
 
 # ---------- skill helpers ----------
@@ -67,7 +74,23 @@ def skill_dirs():
     return out
 
 
+def external_map():
+    """{installed_dir_name: source_name} for skills loaded from external repos.
+
+    Read from skillsource's lockfile so we never edit an upstream skill by accident.
+    """
+    out = {}
+    if EXTERNAL_LOCK.exists():
+        try:
+            for rec in json.loads(EXTERNAL_LOCK.read_text()).get("installed", []):
+                out[rec["dir"]] = rec["source"]
+        except (ValueError, OSError, KeyError):
+            pass
+    return out
+
+
 def list_skills():
+    ext = external_map()
     skills = []
     for path, enabled in skill_dirs():
         try:
@@ -77,10 +100,30 @@ def list_skills():
         _, desc = parse_frontmatter(text)
         files = sorted(str(f.relative_to(path)) for f in path.rglob("*")
                        if f.is_file() and not f.name.startswith("."))
+        source = ext.get(path.name, "")
         skills.append({"name": path.name, "description": desc[:300],
                        "enabled": enabled, "files": files[:100],
-                       "path": str(path)})
+                       "path": str(path), "source": source,
+                       "external": bool(source), "readonly": bool(source)})
     return skills
+
+
+def run_skillsource(args, timeout=900):
+    """Invoke the shared skillsource.py CLI with this server's python + skills root."""
+    if not SKILLSOURCE.exists():
+        raise RuntimeError("skillsource.py not found at " + str(SKILLSOURCE))
+    cmd = [sys.executable, str(SKILLSOURCE), "--manifest", str(MANIFEST),
+           "--skills-dir", str(ROOT), "--ctrl-dir", str(CTRL_DIR)] + args
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+
+def sources_status():
+    rc, out = run_skillsource(["status"], timeout=30)
+    try:
+        return json.loads(out)
+    except ValueError:
+        return {"error": out.strip()[:500], "sources": []}
 
 
 def resolve_skill(name):
@@ -193,6 +236,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"root": str(ROOT), "skills": list_skills(),
                                         "cli": claude_cli_available(),
                                         "api_key": bool(os.environ.get("ANTHROPIC_API_KEY"))})
+            if u.path == "/api/sources":
+                return self._send(200, sources_status())
             if u.path == "/api/skill":
                 skill = resolve_skill(q.get("name", [""])[0])
                 rel = q.get("file", ["SKILL.md"])[0]
@@ -211,6 +256,12 @@ class Handler(BaseHTTPRequestHandler):
             body = self._json_body()
             if u.path == "/api/skill":          # save a file
                 skill = resolve_skill(body["name"])
+                if body["name"] in external_map():
+                    src = external_map()[body["name"]]
+                    raise PermissionError(
+                        "'%s' is an external skill (from '%s'); it's read-only here so "
+                        "your upstream copy stays pristine. Edit it in its own repo, or "
+                        "disable it and make a local skill instead." % (body["name"], src))
                 p = safe_file(skill, body.get("file", "SKILL.md"))
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(body.get("content", ""))
@@ -244,6 +295,35 @@ class Handler(BaseHTTPRequestHandler):
                 dest = trash / (skill.name + "-" + str(int(time.time())))
                 shutil.move(str(skill), str(dest))
                 return self._send(200, {"ok": True, "trashed_to": str(dest)})
+            if u.path == "/api/sources/sync":   # git clone/pull + (re)install a source
+                name = (body.get("name") or "all").strip()
+                if name != "all" and not NAME_RE.match(name):
+                    raise ValueError("invalid source name")
+                rc, out = run_skillsource(["sync", name])
+                return self._send(200, {"ok": rc == 0, "output": out,
+                                        "sources": sources_status().get("sources", [])})
+            if u.path == "/api/sources/remove":  # uninstall a source's skills
+                name = (body.get("name") or "").strip()
+                if name != "all" and not NAME_RE.match(name):
+                    raise ValueError("invalid source name")
+                rc, out = run_skillsource(["remove", name])
+                return self._send(200, {"ok": rc == 0, "output": out,
+                                        "sources": sources_status().get("sources", [])})
+            if u.path == "/api/sources/add":     # append a source to the manifest
+                name = (body.get("name") or "").strip()
+                url = (body.get("url") or "").strip()
+                if not NAME_RE.match(name):
+                    raise ValueError("name must be lowercase letters, digits, - or _")
+                if not (url.startswith("http") or url.startswith("git@")):
+                    raise ValueError("url must be an http(s) or git@ git URL")
+                extra = []
+                if body.get("subdir"):
+                    extra += ["--subdir", str(body["subdir"])]
+                if body.get("ref"):
+                    extra += ["--ref", str(body["ref"])]
+                rc, out = run_skillsource(["add", name, url] + extra, timeout=30)
+                return self._send(200, {"ok": rc == 0, "output": out,
+                                        "sources": sources_status().get("sources", [])})
             if u.path == "/api/claude":         # chat
                 messages = body.get("messages", [])
                 if not messages:
@@ -251,9 +331,11 @@ class Handler(BaseHTTPRequestHandler):
                 reply, backend = ask_claude(messages)
                 return self._send(200, {"reply": reply, "backend": backend})
             return self._send(404, {"error": "not found"})
+        except PermissionError as e:
+            return self._send(403, {"error": str(e)})
         except (ValueError, FileNotFoundError, KeyError) as e:
             return self._send(400, {"error": str(e)})
-        except RuntimeError as e:
+        except (RuntimeError, subprocess.TimeoutExpired) as e:
             return self._send(503, {"error": str(e)})
         except Exception as e:  # noqa: BLE001
             return self._send(500, {"error": repr(e)})

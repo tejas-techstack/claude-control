@@ -12,7 +12,7 @@ FOSS first; self-hostable a plus. "Free tier" only if it needs no card and the u
 
 ## Workflow
 1. Pin the need: which 3-5 features of the paid tool does the user ACTUALLY use? (People replace "Photoshop", but they need "crop, layers, export webp".)
-2. Hunt: web search "open source X alternative", AlternativeTo (free to browse), awesome-X lists on GitHub, european-alternatives.eu for services. Vet the top candidates via /github-explore quality bar (alive, adopted, licensed).
+2. Hunt: start from `references/alternatives.md` (a categorized FOSS catalog — creative, productivity, dev/infra, data/AI, comms), then widen via web search "open source X alternative", AlternativeTo, awesome-selfhosted, european-alternatives.eu. Vet the top candidates via /github-explore quality bar (alive, adopted, licensed) — and re-check the current free-tier terms, they drift.
 3. Compare against the users features, not the paid tools brochure. Note platform support and migration path (can it import the old tools files?).
 4. Be honest when the free option loses: name the gap and the workaround, or say "for your use, the paid tool is genuinely better; nearest free is X minus Y".
 

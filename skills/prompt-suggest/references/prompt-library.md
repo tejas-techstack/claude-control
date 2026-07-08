@@ -36,3 +36,31 @@ Each template: Role / Context / Task / Constraints / Output / Verify. Copy, fill
 22. **CI pipeline** — Create GitHub Actions CI for this repo: lint, test, build on push+PR, with caching. Free tier only. Show the file, explain each job in one line each.
 23. **Agent task brief** — You are an autonomous agent. Goal: {GOAL}. You may: {ALLOWED_ACTIONS}. You may not: {FORBIDDEN}. Definition of done: {CHECKS}. Work in small verified steps; after each step state what you verified. Stop and ask if you hit {STOP_CONDITIONS}.
 24. **Prompt improver** — Rewrite this prompt to be unambiguous and verifiable, keeping my intent: {PROMPT}. Return improved prompt + a bullet list of what was underspecified.
+
+## Data / SQL
+25. **Query author** — Write a {DIALECT} query: from {TABLES_WITH_KEYS}, return {RESULT}. Constraints: no full scans on {BIG_TABLE} (use {INDEXED_COL}), parametrized (no string interpolation). Verify: show the query plan and run on sample data.
+26. **Schema design** — Design tables for {DOMAIN}. Give DDL, the key relationships, the indexes each frequent query needs, and one migration to get there from {CURRENT_STATE}. Call out any denormalization and why.
+27. **Data cleanup** — {DATASET} has {PROBLEMS}. Write a reproducible, idempotent transform (script, not manual edits) that fixes each, logs how many rows each rule touched, and leaves the original untouched. Verify on a sample.
+
+## DevOps / deploy
+28. **Dockerize** — Write a Dockerfile for this {STACK} app: multi-stage, non-root user, pinned base, minimal final image, healthcheck. Then a compose file for local dev. Verify: `docker build` + one run command that works.
+29. **Deploy plan (free tier)** — Deploy {APP} on {FREE_HOST}. Steps from zero, secrets handling, the exact commands, and how to roll back. Free tier only — state any limit that bites at {EXPECTED_SCALE}.
+30. **Observability starter** — Add structured logging + a health endpoint + the 3 metrics that matter for {APP} ({SUGGEST_IF_UNSURE}). No paid SaaS; keep it to what {FREE_STACK} gives.
+
+## Frontend
+31. **Responsive layout** — Build {LAYOUT} that works at 360/768/1440px. Constraints: no CSS framework unless already present, logical properties, respects prefers-reduced-motion + prefers-color-scheme. Verify: describe behavior at each breakpoint.
+32. **Accessibility fix** — Audit {COMPONENT/PAGE} for WCAG AA: contrast, focus order, labels, keyboard traps, ARIA misuse. Per issue: what/why/the fix. Then apply the fixes.
+
+## Concurrency / performance
+33. **Make it concurrent (safely)** — {SEQUENTIAL_CODE} is slow because {REASON}. Parallelize with {PRIMITIVE}, but first name every shared resource and how you'll protect it. Cap concurrency; handle partial failure. Verify: correctness on repeated runs, then timing.
+34. **Find the hotspot** — {WORKLOAD} is slow. Profile first and show the top 3 costs by time. Optimize only #1, measure again, report before/after. Stop if the win is under {THRESHOLD}.
+
+## Explain / learn
+35. **Teach me this concept** — Explain {CONCEPT} using an analogy, then precisely, then one worked example from {MY_CONTEXT}. End with a question that checks I understood the tricky part.
+36. **Compare & choose** — I'm choosing between {A}, {B}, {C} for {USE_CASE} ({CONSTRAINTS}). Table them on the 4 axes that matter here, recommend one, and give the strongest argument against your pick.
+
+## Meta / workflow
+37. **Plan before code** — Before writing anything for {TASK}, produce a short plan: the approach, the files you'll touch, the risks, and the first checkpoint. Wait for my OK.
+38. **Constrain the blast radius** — Do {TASK}, but touch only {ALLOWED_PATHS}. If you think you need to change anything else, stop and tell me why first.
+39. **Small reversible steps** — Implement {FEATURE} as a sequence of commits, each independently revertible and green. After each, state what changed and what you verified. Don't batch it into one giant diff.
+40. **Rubber-duck / red-team my plan** — Here's my plan: {PLAN}. Poke the 3 biggest holes, name one thing I'm assuming that might be false, and suggest the cheapest way to de-risk it before I start.

@@ -2,6 +2,9 @@
 # claude-control installer (Linux + macOS)
 # One shot, idempotent, non-destructive: existing skills are backed up, never overwritten silently.
 # Usage: ./install.sh [--symlink] [--uninstall] [--skills-dir DIR]
+#                     [--with-external] [--external NAME[,NAME...]]
+#   --with-external   also clone+install every source in skill-sources.txt (needs git)
+#   --external LIST   only those named sources (comma-separated), implies --with-external
 set -u
 
 # ---------- pretty printing ----------
@@ -15,6 +18,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 CTRL_DIR="$HOME/.claude/claude-control"
 MODE="copy"; ACTION="install"; WARNINGS=0; FAILURES=0
+EXTERNAL=""            # "" = none, "all" = every source, or a comma list of names
 TS="$(date +%Y%m%d-%H%M%S)"
 
 while [ $# -gt 0 ]; do
@@ -22,7 +26,9 @@ while [ $# -gt 0 ]; do
     --symlink) MODE="symlink" ;;
     --uninstall) ACTION="uninstall" ;;
     --skills-dir) shift; SKILLS_DIR="$1" ;;
-    -h|--help) sed -n '2,5p' "$0"; exit 0 ;;
+    --with-external) EXTERNAL="all" ;;
+    --external) shift; EXTERNAL="$1" ;;
+    -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
     *) echo "unknown flag: $1"; exit 1 ;;
   esac
   shift
@@ -36,12 +42,16 @@ echo ""
 
 # ---------- uninstall ----------
 if [ "$ACTION" = "uninstall" ]; then
+  if command -v python3 >/dev/null 2>&1 && [ -f "$CTRL_DIR/tools/skillsource.py" ]; then
+    python3 "$CTRL_DIR/tools/skillsource.py" --skills-dir "$SKILLS_DIR" --ctrl-dir "$CTRL_DIR" \
+      remove all >/dev/null 2>&1 && ok "removed external (gstack/etc.) skills"
+  fi
   for d in "$REPO_DIR"/skills/*/; do
     name="$(basename "$d")"
     t="$SKILLS_DIR/$name"
     if [ -L "$t" ] || [ -d "$t" ]; then rm -rf "$t"; ok "removed skill $name"; else skip "$name not installed"; fi
   done
-  [ -d "$CTRL_DIR" ] && rm -rf "$CTRL_DIR" && ok "removed $CTRL_DIR"
+  [ -d "$CTRL_DIR" ] && rm -rf "$CTRL_DIR" && ok "removed $CTRL_DIR (incl. external/ clones)"
   echo ""; echo "Uninstalled. Backups (if any) were left in ~/.claude/skills-backup-*"
   exit 0
 fi
@@ -70,16 +80,20 @@ for d in "$REPO_DIR"/skills/*/; do
   fi
 done
 
-# ---------- 2. tools + templates ----------
+# ---------- 2. tools + templates + skill-sources manifest ----------
 echo ""; echo "${BOLD}2) Installing tools${RESET}"
 if [ "$MODE" = "symlink" ]; then
   rm -rf "$CTRL_DIR/tools" "$CTRL_DIR/templates"
   ln -sfn "$REPO_DIR/tools" "$CTRL_DIR/tools" && ok "linked tools/"
   ln -sfn "$REPO_DIR/templates" "$CTRL_DIR/templates" && ok "linked templates/"
+  ln -sfn "$REPO_DIR/skill-sources.txt" "$CTRL_DIR/skill-sources.txt" && ok "linked skill-sources.txt"
 else
   rm -rf "$CTRL_DIR/tools" "$CTRL_DIR/templates"
   cp -R "$REPO_DIR/tools" "$CTRL_DIR/tools" && ok "copied tools/"
   cp -R "$REPO_DIR/templates" "$CTRL_DIR/templates" && ok "copied templates/"
+  # Don't clobber a manifest the user has edited; seed it once.
+  if [ -f "$CTRL_DIR/skill-sources.txt" ]; then skip "skill-sources.txt kept (yours)"
+  else cp "$REPO_DIR/skill-sources.txt" "$CTRL_DIR/skill-sources.txt" && ok "copied skill-sources.txt"; fi
 fi
 
 # ---------- 3. skill manager ----------
@@ -96,6 +110,24 @@ cat > "$CTRL_DIR/bin/skill-manager" <<LAUNCH
 exec python3 "$CTRL_DIR/skill-manager/server.py" "\$@"
 LAUNCH
 chmod +x "$CTRL_DIR/bin/skill-manager" && ok "launcher: $CTRL_DIR/bin/skill-manager"
+
+# ---------- 3b. external skill sources (opt-in) ----------
+echo ""; echo "${BOLD}3b) External skill sources${RESET}  ${DIM}(gstack, anthropic-skills, ...)${RESET}"
+if [ -z "$EXTERNAL" ]; then
+  skip "not fetched — re-run with --with-external, or use the skill manager's Sources panel"
+elif ! command -v python3 >/dev/null 2>&1; then
+  warn "skipped external skills: python3 not found"
+elif ! command -v git >/dev/null 2>&1; then
+  warn "skipped external skills: git not found"
+else
+  emode="symlink"; [ "$MODE" = "copy" ] && emode="copy"
+  targets="all"; [ "$EXTERNAL" != "all" ] && targets="$(echo "$EXTERNAL" | tr ',' ' ')"
+  for t in $targets; do
+    python3 "$CTRL_DIR/tools/skillsource.py" --manifest "$CTRL_DIR/skill-sources.txt" \
+      --skills-dir "$SKILLS_DIR" --ctrl-dir "$CTRL_DIR" --mode "$emode" sync "$t" \
+      && ok "synced source: $t" || warn "sync had issues for: $t"
+  done
+fi
 
 # ---------- 4. dependency report ----------
 echo ""; echo "${BOLD}4) Dependency check${RESET}  ${DIM}(nothing here blocks the install)${RESET}"
@@ -118,6 +150,10 @@ echo "Next steps:"
 echo "  * Restart Claude Code (or start it) — skills load from $SKILLS_DIR"
 echo "  * Skill manager UI:   $CTRL_DIR/bin/skill-manager    then open http://127.0.0.1:8765"
 echo "  * Per-project setup:  cp $CTRL_DIR/templates/CLAUDE.md <your-project>/CLAUDE.md"
+if [ -z "$EXTERNAL" ]; then
+echo "  * Add more skills:    ./install.sh --with-external   (gstack + anthropic-skills)"
+echo "                        or: python3 $CTRL_DIR/tools/skillsource.py sync all"
+fi
 echo "  * Optional PATH line (add yourself if you want 'skill-manager' everywhere):"
 echo "      export PATH=\"\$PATH:$CTRL_DIR/bin\""
 exit 0

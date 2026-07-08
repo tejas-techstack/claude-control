@@ -16,7 +16,7 @@ Turn session learnings into a permanent project skill. Read `../_shared/GUARDRAI
 - **Improved fragments**: where a generic installed skill needed adaptation here, record the delta ("when /create-test-suite runs here, use `make test` not pytest directly") — adapt-by-reference, never fork whole skills into the control-skill.
 
 ## Workflow
-1. First run: scan installed skills names/descriptions, run repo_map.py, and mine THIS conversation for corrections, discovered commands, and decisions. Draft the control-skill; show it; write only on approval.
+1. First run: scan installed skills names/descriptions (or `inventory.py` from /skill-suggestions), run repo_map.py, and mine THIS conversation for corrections, discovered commands, and decisions. Draft the control-skill from `assets/control-skill-template.md`; show it; write only on approval.
 2. Frontmatter description must be project-pushy: "Use for ANY task in <project> — read this before other skills."
 3. Subsequent runs: update, do not append-forever — merge new learnings, delete invalidated ones, keep under ~150 lines. Date-stamp a changelog line at the bottom.
 4. Session scope option: if the user wants it session-only, keep it in memory/scratch instead of writing the file.

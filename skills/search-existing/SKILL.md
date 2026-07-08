@@ -8,7 +8,7 @@ description: Scan the repo for hand-rolled components that could be replaced by 
 Find the hand-rolled, match it to battle-tested replacements, and be honest when custom is correct. Read `../_shared/GUARDRAILS.md` first.
 
 ## Workflow
-1. **Scan** — repo_map.py + grep for classic wheel-reinventions: date/time math, retry/backoff, caching, argument parsing, HTTP clients, auth/JWT/crypto (highest priority — custom crypto is a finding by itself), state machines, schedulers, CSV/JSON parsing, validation, templating, queues.
+1. **Scan** — repo_map.py + grep for classic wheel-reinventions: date/time math, retry/backoff, caching, argument parsing, HTTP clients, auth/JWT/crypto (highest priority — custom crypto is a finding by itself), state machines, schedulers, CSV/JSON parsing, validation, templating, queues. `references/wheels.md` is a per-language catalog (Python/JS/Go/Rust/infra) mapping each hand-rolled pattern to its battle-tested replacement.
 2. **For each candidate**, capture: what it does, LOC, test coverage, and any custom behavior a replacement must preserve.
 3. **Find replacements** via /github-explore quality bar: maintained (commits within ~a year), widely used (downloads/dependents), permissive license compatible with the project, no paid tier required for the needed features.
 4. **Judge honestly per candidate**: REPLACE (lib is strictly better) / KEEP (custom carries real domain logic or the dep is heavier than the problem) / WRAP (keep interface, swap internals). Dependencies have costs too — supply chain, size, learning — say so.

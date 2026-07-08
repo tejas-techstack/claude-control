@@ -94,6 +94,31 @@
   button:disabled{opacity:.5;cursor:default}
   .spacer{flex:1}
 
+  /* source badges + filter + read-only banner */
+  .filterbar{display:flex;gap:6px;padding:0 12px 8px;align-items:center}
+  .filterbar select{flex:1;background:var(--ink);border:1px solid var(--line);color:var(--dim);
+      border-radius:6px;padding:5px 8px;font:11px var(--mono)}
+  .filterbar select:focus{outline:1px solid var(--brass)}
+  .badge{display:inline-block;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+      color:var(--brass);border:1px solid var(--brass-dim);border-radius:4px;padding:1px 5px;margin-left:6px;
+      vertical-align:middle}
+  .drawer .lock{color:var(--dim);font-size:10px;margin-left:auto;flex:none}
+  .ro-banner{margin:10px 16px 0;padding:8px 12px;border:1px solid var(--brass-dim);border-radius:6px;
+      background:rgba(201,161,90,.08);color:var(--dim);font:12px var(--mono);line-height:1.5}
+  .ro-banner b{color:var(--brass)}
+  /* sources modal */
+  .src{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .src .nm{font:600 13px var(--mono);color:var(--text)}
+  .src .u{font:11px var(--mono);color:var(--dim);word-break:break-all;margin:2px 0 6px}
+  .src .meta{font:11px var(--mono);color:var(--dim);margin-bottom:8px}
+  .src .meta .on{color:var(--ok)}
+  .srcOut{white-space:pre-wrap;font:11px var(--mono);color:var(--dim);background:var(--ink);
+      border:1px solid var(--line);border-radius:6px;padding:8px;max-height:150px;overflow:auto;margin-top:8px;display:none}
+  dialog.wide{width:min(620px,94vw)}
+  .srcList{max-height:46vh;overflow:auto;margin-bottom:12px}
+  .addForm{border-top:1px dashed var(--line);padding-top:12px}
+  .addForm .grid{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+
   /* toast + modal */
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel-2);
       border:1px solid var(--brass-dim);color:var(--text);padding:9px 16px;border-radius:8px;
@@ -121,7 +146,14 @@
   <aside class="side">
     <div class="bar">
       <input type="search" id="search" placeholder="filter skills…" aria-label="Filter skills">
+      <button id="srcBtn" title="Manage external skill sources (gstack, anthropic-skills…)">sources</button>
       <button class="primary" id="newBtn" title="Create a new skill">+ new</button>
+    </div>
+    <div class="filterbar">
+      <select id="srcFilter" aria-label="Filter by source">
+        <option value="__all">all skills</option>
+        <option value="__local">local only (this repo + yours)</option>
+      </select>
     </div>
     <nav class="list" id="list" aria-label="Skills"></nav>
   </aside>
@@ -142,6 +174,7 @@
         <button id="toggleBtn">disable</button>
         <button id="deleteBtn" class="danger">delete</button>
       </div>
+      <div class="ro-banner" id="roBanner" style="display:none"></div>
       <div class="tabs" id="tabs"></div>
       <textarea class="editor" id="editor" spellcheck="false" aria-label="File editor"></textarea>
     </div>
@@ -173,11 +206,32 @@
   <button class="primary" id="newCreate" type="button">create</button></div>
 </dialog>
 
+<dialog id="srcDlg" class="wide">
+  <h3>External skill sources</h3>
+  <p style="font:12px var(--mono);color:var(--dim);line-height:1.5;margin:0 0 12px">
+    Public git repos of skills (gstack, anthropic-skills, your own). Synced skills are
+    <b style="color:var(--brass)">read-only</b> here so your upstream copies stay pristine —
+    edit those in their own repos. Needs <code>git</code>.</p>
+  <div class="srcList" id="srcList">loading…</div>
+  <div class="addForm">
+    <h3 style="margin-bottom:8px">Add a source</h3>
+    <div class="grid">
+      <input id="srcName" placeholder="short-name" autocomplete="off">
+      <input id="srcUrl" placeholder="https://github.com/org/repo" autocomplete="off">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="srcClose" type="button">close</button>
+      <button class="primary" id="srcAdd" type="button">add source</button>
+    </div>
+  </div>
+</dialog>
+
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
 let skills = [], selected = null, curFile = "SKILL.md", dirty = false;
 let chat = []; // {role, content}
+let curReadonly = false;
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 2600); }
@@ -196,15 +250,33 @@ async function refresh(keepSel=true){
   $("#rootPath").textContent = data.root;
   $("#cliDot").classList.toggle("on", data.cli);
   $("#keyDot").classList.toggle("on", data.api_key);
+  buildFilterOptions();
   renderList();
   if(keepSel && selected && !skills.some(s=>s.name===selected)) closeEditor();
 }
 
+function buildFilterOptions(){
+  const sel = $("#srcFilter"); const cur = sel.value || "__all";
+  const counts = {};
+  for(const s of skills) if(s.source) counts[s.source] = (counts[s.source]||0)+1;
+  const names = Object.keys(counts).sort();
+  const localN = skills.filter(s=>!s.source).length;
+  sel.innerHTML = "";
+  const opt = (v,t)=>{ const o=document.createElement("option"); o.value=v; o.textContent=t; sel.appendChild(o); };
+  opt("__all", `all skills · ${skills.length}`);
+  opt("__local", `local only · ${localN}`);
+  for(const n of names) opt(n, `${n} · ${counts[n]}`);
+  sel.value = [...sel.options].some(o=>o.value===cur) ? cur : "__all";
+}
+
 function renderList(){
   const q = $("#search").value.trim().toLowerCase();
+  const f = $("#srcFilter").value;
+  const inFilter = (s) => f==="__all" || (f==="__local" ? !s.source : s.source===f);
+  const pool = skills.filter(inFilter);
   const list = $("#list"); list.innerHTML = "";
-  const groups = [["enabled", skills.filter(s=>s.enabled)],
-                  ["disabled", skills.filter(s=>!s.enabled)]];
+  const groups = [["enabled", pool.filter(s=>s.enabled)],
+                  ["disabled", pool.filter(s=>!s.enabled)]];
   for(const [label, items] of groups){
     const vis = items.filter(s => !q || s.name.includes(q) ||
                  (s.description||"").toLowerCase().includes(q));
@@ -214,19 +286,26 @@ function renderList(){
     for(const s of vis){
       const b = document.createElement("button");
       b.className = "drawer" + (s.enabled?"":" off") + (s.name===selected?" sel":"");
-      b.innerHTML = `<span class="pip"></span><span><span class="nm"></span><div class="ds"></div></span>`;
+      b.innerHTML = `<span class="pip"></span><span style="min-width:0;flex:1">`
+        + `<span class="nm"></span><span class="badge" hidden></span>`
+        + `<div class="ds"></div></span><span class="lock" hidden>🔒</span>`;
       b.querySelector(".nm").textContent = s.name;
       b.querySelector(".ds").textContent = s.description || "(no description)";
+      if(s.source){
+        const bd = b.querySelector(".badge"); bd.textContent = s.source; bd.hidden = false;
+        b.querySelector(".lock").hidden = false;
+      }
       b.onclick = () => select(s.name);
       list.appendChild(b);
     }
   }
   if(!list.children.length){
     const g=document.createElement("div"); g.className="group";
-    g.textContent = q ? "no matches" : "no skills yet — hit + new";
+    g.textContent = q ? "no matches" : (f==="__all" ? "no skills yet — hit + new" : "none from this source");
     list.appendChild(g);
   }
 }
+$("#srcFilter").addEventListener("change", renderList);
 
 /* ---------- editor ---------- */
 function skill(){ return skills.find(s=>s.name===selected); }
@@ -245,6 +324,17 @@ async function openFile(){
   $("#skillName").textContent = "/" + s.name;
   $("#skillPath").textContent = s.path;
   $("#toggleBtn").textContent = s.enabled ? "disable" : "enable";
+  curReadonly = !!s.readonly;
+  const ro = $("#roBanner");
+  if(curReadonly){
+    ro.style.display = "block";
+    ro.innerHTML = `Read-only — this skill comes from the external source `
+      + `<b>${s.source}</b>. It's not edited here so your upstream copy stays pristine. `
+      + `Update it via <b>sources → sync</b>, or disable it and build a local skill.`;
+  } else { ro.style.display = "none"; }
+  $("#editor").readOnly = curReadonly;
+  $("#saveBtn").disabled = curReadonly;
+  $("#saveBtn").title = curReadonly ? "external skills are read-only" : "";
   const tabs = $("#tabs"); tabs.innerHTML = "";
   for(const f of s.files){
     const t = document.createElement("button");
@@ -272,6 +362,7 @@ $("#editor").addEventListener("input", ()=> dirty = true);
 
 $("#saveBtn").onclick = async () => {
   const s = skill(); if(!s) return;
+  if(curReadonly){ toast("external skill — read-only here"); return; }
   try{
     await api("/api/skill", {method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({name:s.name, file:curFile, content:$("#editor").value})});
@@ -308,6 +399,61 @@ $("#newCreate").onclick = async () => {
     const d = await api("/api/skill/new", {method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({name:$("#newName").value.trim(), description:$("#newDesc").value.trim()})});
     $("#newDlg").close(); await refresh(); select(d.name); toast("created " + d.name);
+  }catch(e){ toast(e.message); }
+};
+
+/* ---------- external sources ---------- */
+$("#srcBtn").onclick = () => { $("#srcDlg").showModal(); loadSources(); };
+$("#srcClose").onclick = () => $("#srcDlg").close();
+
+async function loadSources(){
+  const box = $("#srcList"); box.textContent = "loading…";
+  try{
+    const d = await api("/api/sources");
+    if(!d.git){ box.innerHTML = `<div class="src">git was not found on PATH — install git to sync external skills.</div>`; }
+    if(!d.sources || !d.sources.length){ box.innerHTML = `<div class="src">No sources yet. Add one below.</div>`; return; }
+    box.innerHTML = "";
+    for(const s of d.sources){
+      const el = document.createElement("div"); el.className = "src";
+      const cloned = s.cloned ? `<span class="on">cloned</span>` : "not fetched";
+      el.innerHTML = `<div class="nm"></div><div class="u"></div>`
+        + `<div class="meta">${cloned} · <b>${s.installed}</b> skills installed`
+        + (s.ref?` · ref ${s.ref}`:``) + (s.error?` · ⚠ ${s.error}`:``) + `</div>`
+        + `<div class="row" style="justify-content:flex-start">`
+        + `<button data-a="sync" class="primary">sync / update</button>`
+        + `<button data-a="remove" class="danger">remove skills</button></div>`
+        + `<div class="srcOut"></div>`;
+      el.querySelector(".nm").textContent = s.name;
+      el.querySelector(".u").textContent = s.url;
+      const out = el.querySelector(".srcOut");
+      el.querySelector('[data-a=sync]').onclick   = () => srcAction("sync", s.name, out);
+      el.querySelector('[data-a=remove]').onclick = () => srcAction("remove", s.name, out);
+      box.appendChild(el);
+    }
+  }catch(e){ box.innerHTML = `<div class="src">could not load sources: ${e.message}</div>`; }
+}
+
+async function srcAction(action, name, out){
+  if(action==="remove" && !confirm(`Remove all skills installed from "${name}"? (the git clone is kept)`)) return;
+  out.style.display = "block"; out.textContent = (action==="sync"?"syncing ":"removing ") + name + " … (git may take a moment)";
+  try{
+    const d = await api("/api/sources/"+action, {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name})});
+    out.textContent = (d.output||"").trim() || (d.ok?"done":"failed");
+    toast(name + " " + action + (d.ok?" ok":" had issues"));
+    await refresh(); await loadSources();
+  }catch(e){ out.textContent = "error: " + e.message; toast(e.message); }
+}
+
+$("#srcAdd").onclick = async () => {
+  const name = $("#srcName").value.trim(), url = $("#srcUrl").value.trim();
+  if(!name || !url){ toast("name and git URL required"); return; }
+  try{
+    const d = await api("/api/sources/add", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name, url})});
+    if(!d.ok){ toast((d.output||"add failed").trim()); return; }
+    $("#srcName").value=""; $("#srcUrl").value="";
+    toast("added " + name + " — hit sync to install"); await loadSources();
   }catch(e){ toast(e.message); }
 };
 

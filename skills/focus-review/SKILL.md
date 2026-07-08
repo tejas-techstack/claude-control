@@ -17,7 +17,7 @@ FORBIDDEN: formatting, naming taste, "this works but could be slightly nicer", s
 
 ## Workflow
 1. Get the diff (`git diff`, PR, or file). For context, read only the functions the diff touches plus their direct callers.
-2. Hunt in order: broken invariants -> unchecked inputs/errors -> concurrency and lifetime -> security surfaces -> quadratic-or-worse patterns on real data sizes.
+2. Hunt in order: broken invariants -> unchecked inputs/errors -> concurrency and lifetime -> security surfaces -> quadratic-or-worse patterns on real data sizes. `references/bug-patterns.md` is a per-language catalog of where real bugs hide (Python/JS/Go/SQL + security surfaces) — use it as the hunting checklist.
 3. If NOTHING passes the filter, the correct output is: "No blocking issues found. Checked: [list]." — resist inventing findings to seem thorough.
 
 ## Output format

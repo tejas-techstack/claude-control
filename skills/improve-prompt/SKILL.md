@@ -16,7 +16,7 @@ Diagnose, rewrite, explain — keep the users intent sacred. Read `../_shared/GU
 - **Scope creep / conflation**: is it 3 tasks in a trenchcoat? Split it.
 
 ## Rewrite rules
-Keep the users intent and vocabulary; add structure only where it pays: [Role if it changes behavior] + Context + Task + Constraints + Output format + Verify-step. Concrete beats abstract ("under 200 words" not "concise"). Include one example if the format is unusual. Do not bloat a working prompt — sometimes the fix is deleting contradictions.
+Keep the users intent and vocabulary; add structure only where it pays: [Role if it changes behavior] + Context + Task + Constraints + Output format + Verify-step. Concrete beats abstract ("under 200 words" not "concise"). Include one example if the format is unusual. Do not bloat a working prompt — sometimes the fix is deleting contradictions. `references/diagnosis.md` has the full checklist, the rewrite skeleton, and several before/after worked examples.
 
 ## Output format
 1. **Diagnosis** — bullet list of what was underspecified/ambiguous (quote the offending phrase).

@@ -14,7 +14,7 @@ Original means checked, not just imagined. Read `../_shared/GUARDRAILS.md` first
    - Transfer a mechanic from a foreign domain (git for recipes, ELO for chores, speedrun timers for study).
    - Change the constraint that shapes everything (1 button only, zero server, must run on a 2010 laptop).
    - Merge two tools nobody merges; or subtract the feature every competitor treats as mandatory.
-   Generate 6-8 raw spins fast; do not self-censor yet.
+   Generate 6-8 raw spins fast; do not self-censor yet. `references/divergence.md` lists the full set of divergence moves (invert, transfer, constrain, merge, subtract, extremify, re-aim, flip) with examples.
 3. **Verify novelty** — search the 3 most promising spins specifically. Finding prior art is fine: state how the spin differs or iterate again. Never claim "no one has done this" without having searched — report what the search showed.
 4. **Reality-check the winner**: feasible with free tools? A weekend-sized wedge exists? What is the honest hard part?
 

@@ -25,5 +25,7 @@ Every claude-control skill ends with a **Chaining** section declaring its inputs
 - De-bloat a codebase: /improvements -> /search-existing -> /github-explore -> migrate -> /focus-review
 - Research to prototype: /research -> /creative-spin -> /cross-check -> build in /isolate
 
+`references/pipelines.md` has the full catalog (8+ pipelines with the artifact named on each arrow) plus the composition rules and a recipe for building your own.
+
 ## Chaining
 - Input: any multi-stage goal. Output: an executed pipeline + its artifacts; persist good pipelines with /control-skill.

@@ -1,13 +1,14 @@
 # claude-control
 
-One repo that upgrades Claude Code three ways: **25 composable skills**, **token-saving repo tools**, and a **local skill-manager UI** with Claude built in. One-shot install on Linux, macOS, and Windows. Everything is free-only, privacy-respecting, and consent-gated — no skill will push, publish, or install system-wide without asking you first.
+One repo that upgrades Claude Code four ways: **25 composable skills**, a **loader for external skill collections** (gstack, Anthropic's official skills, your own repos), **token-saving repo tools**, and a **local skill-manager UI** with Claude built in. One-shot install on Linux, macOS, and Windows. Everything is free-only, privacy-respecting, and consent-gated — no skill will push, publish, or install system-wide without asking you first.
 
 ```
 claude-control/
 ├── install.sh / install.ps1     one-shot installers (idempotent, back up conflicts)
 ├── skills/                      25 skills + _shared/GUARDRAILS.md
-├── tools/                       repo_map, graphify, context_pack, chores (stdlib-only)
-├── skill-manager/               local web UI: edit skills + chat with Claude
+├── skill-sources.txt            external skill repos to load (gstack, anthropic-skills, …)
+├── tools/                       repo_map, graphify, context_pack, chores, skillsource (stdlib)
+├── skill-manager/               local web UI: edit skills, manage sources, chat with Claude
 ├── templates/CLAUDE.md          drop into any project to wire it all up
 └── README.md · LICENSE (MIT) · VERSION
 ```
@@ -43,6 +44,27 @@ What it does: copies every folder in `skills/` into `~/.claude/skills/` (existin
 
 Then restart Claude Code and type `/` — the skills are live. For any project, copy `templates/CLAUDE.md` in as `CLAUDE.md` so Claude automatically uses the token-saving tools and consent rules there.
 
+## Operating it from Claude Code (CLI **and** the VS Code extension)
+
+Everything here runs *inside* Claude Code — the terminal CLI and the VS Code / Cursor / JetBrains extension behave the same, because they share the one skills directory (`~/.claude/skills/`). This is the day-to-day driver's guide.
+
+**1 — Load the skills into your session.** Skills are read once when a session starts, so after installing (or syncing new ones) start a fresh Claude Code session: in the CLI just relaunch `claude`; in the VS Code extension open a new chat (or run *Developer: Reload Window*). Then type `/` and you'll see `research`, `guide`, `humanize`, … in the slash menu. Sanity check: ask *"which skills do you have available?"* and Claude will list them.
+
+**2 — Two ways to fire a skill.**
+
+- **Explicitly** — type the slash command with your ask: `/research diffusion model watermarking`, `/guide where is auth handled?`, `/humanize this repo`. In VS Code, start the message with `/` and pick from the popup.
+- **Automatically** — you don't have to name skills. Each `SKILL.md` has a trigger-rich `description`, so a plain request like *"find me a well-tested rate-limiter library"* makes Claude reach for `/github-explore` on its own. Not sure which to use? Run **`/skill-suggestions`** and it routes you; run **`/skills-interleave`** to chain several into a pipeline.
+
+**3 — Let the tools save you tokens.** Drop `templates/CLAUDE.md` into a project as `CLAUDE.md` and Claude will, on its own, run `repo_map.py` / `graphify.py` before reading a big repo and hand mechanical work (format, lint, test) to `chores.py`. You can also just ask: *"map this repo first"* or *"run the chores."* Nothing is auto-run without that wiring or your say-so.
+
+**4 — Open the skill manager next to your editor.** Launch `~/.claude/claude-control/bin/skill-manager` (Windows: `skill-manager.cmd`) from any terminal — in VS Code use the **integrated terminal**, then open `http://127.0.0.1:8765` in the built-in **Simple Browser** (`Cmd/Ctrl-Shift-P → Simple Browser: Show`) so it sits beside your code. Edit skills, toggle them, add external sources, and chat with Claude — it reuses your existing Claude Code login, no API key needed.
+
+**5 — Make skills stick to a project.** After a good session, run **`/control-skill`** — it writes `.claude/skills/control-<project>/SKILL.md` into the repo so the commands, conventions, and gotchas you just established load automatically for you (and your teammates) next time.
+
+**6 — Run risky/autonomous work safely.** `/isolate` builds a Docker sandbox so `claude --dangerously-skip-permissions` only ever touches one mounted folder — never your host. Use it for long unattended runs from either the CLI or the extension.
+
+> **Reload rule of thumb:** installed or synced something and don't see it? Start a new Claude Code session (CLI relaunch, or *Reload Window* in VS Code). Skills are enumerated at session start.
+
 ## The 25 skills
 
 Every skill obeys `skills/_shared/GUARDRAILS.md`: free-only (no paid APIs, subscriptions, or paywalls), safe well-known sites only, privacy-first, explicit consent before any side effect, and token-thrift via the bundled tools. Each SKILL.md ends with a **Chaining** section so skills can call each other.
@@ -59,7 +81,7 @@ Every skill obeys `skills/_shared/GUARDRAILS.md`: free-only (no paid APIs, subsc
 | `/guide` | Human-style guided tour of a repo: where things live, how data flows, where to make your change |
 | `/setup` | Gets a project running, aggressively: install → run → read error → fix → repeat until it works or is provably impossible (with evidence) |
 | `/isolate` | Dockerizes the workspace so `claude --dangerously-skip-permissions` runs **only inside the sandbox** — your real system is never touched |
-| `/prompt-suggest` | 24 fill-in prompt templates (build, modify, test, debug, review, migrate, automate, meta) |
+| `/prompt-suggest` | 40 fill-in prompt templates (build, modify, test, debug, review, migrate, data/SQL, devops, frontend, concurrency, automate, meta) |
 | `/i-have-no-idea` | Interactive discovery for when you're lost — narrows from "no idea" to a concrete next step |
 | `/critical-review` | Brutal but fair review: correctness, security, design — with severity and evidence |
 | `/focus-review` | Reviews only what matters; explicitly skips micro-optimizations, allows exponential wins |
@@ -76,6 +98,29 @@ Every skill obeys `skills/_shared/GUARDRAILS.md`: free-only (no paid APIs, subsc
 | `/creative-spin` | Generates ideas and *verifies* uniqueness by searching before claiming novelty |
 
 Naming note: `/humanize` (codebase teacher) and `/humanizer` (prose de-AI-ifier) are intentionally distinct and their descriptions are collision-proof, but rename either if you prefer — the skill-manager makes that a 10-second edit.
+
+## Loading external skills (gstack, anthropic-skills, your own repos)
+
+The 25 skills above are the ones *this* repo maintains. But the ecosystem is bigger — so claude-control can also pull in whole skill collections from any public git repo and install them right next to the built-ins, **without editing a single upstream file**. Two collections ship enabled in `skill-sources.txt`:
+
+| Source | Repo | What you get |
+|---|---|---|
+| `gstack` | [garrytan/gstack](https://github.com/garrytan/gstack) | Garry Tan's ~50-skill "virtual eng team": CEO product review, eng-manager, designer, reviewer, QA, security, release. |
+| `anthropic-skills` | [anthropics/skills](https://github.com/anthropics/skills) | Anthropic's official Agent Skills — document (pdf/docx/pptx/xlsx), creative, and technical. |
+
+Nothing is fetched on a plain install. You opt in, three interchangeable ways:
+
+```bash
+./install.sh --with-external                     # every enabled source (needs git)
+./install.sh --external gstack                    # just one
+python3 ~/.claude/claude-control/tools/skillsource.py sync all   # anytime, after install
+```
+
+…or open the skill manager and use the **sources** panel (sync / update / remove / add) with buttons.
+
+**Add your own** — one line in `skill-sources.txt` (`<name> <git-url> [subdir=…] [ref=…] [prefix=…]`), or `skillsource.py add my-skills https://github.com/you/repo`. The loader clones the repo under `~/.claude/claude-control/external/`, finds every folder containing a `SKILL.md`, and installs each — prefixing folders per-source (`gstack-review`, …) so they never collide with your own. In the manager, external skills carry a source badge and a 🔒: they're **read-only** so re-syncing always matches upstream cleanly. `skillsource.py list` shows what's installed; `remove <name>` / `--uninstall` takes them back out. It's the same `tools/skillsource.py` under the installers *and* the UI, so the two can't drift.
+
+> Free-only still applies: only genuinely free, public, reputable repos belong in `skill-sources.txt`. Two collections can both define, say, `/review`; the loader warns on the clash and you disable one in the manager.
 
 ## The tools (spend 20% of the tokens for 80% of the work)
 
@@ -97,25 +142,18 @@ Stdlib-only Python, installed to `~/.claude/claude-control/tools/`, wired in via
 
 Browse and edit every skill, create new ones from a template, enable/disable (moves folders to `.disabled/`), soft-delete (to `.trash/`), and chat with Claude in a side panel that can include the skill you're editing as context. Localhost-only, path-traversal-guarded, zero dependencies. Details in `skill-manager/README.md`.
 
-## Publishing this to your GitHub (you do it — nothing is pushed for you)
-
-```bash
-cd claude-control
-git init -b main
-git add -A
-git commit -m "claude-control v0.1.0"
-gh repo create claude-control --private --source . --push 
-```
 
 ## FAQ
 
-**Why free-only?** House rule, enforced in `GUARDRAILS.md`: every skill must work with no subscription, no paywall, no trial-that-expires. Where an official paid integration exists (e.g. Firecrawl's hosted API), the skill ships a local free equivalent instead and only *mentions* the paid option.
+**Why free-only?** House rule, enforced in `GUARDRAILS.md`: every skill must work with no subscription, no paywall, no trial-that-expires. Where an official paid integration exists, the skill ships a free equivalent. `/firecrawl` is the model: it starts with a stdlib crawler, and when a page needs a real browser it **pulls and runs the actual open-source Firecrawl engine on your machine** (`firecrawl_selfhost.sh`) — same engine as the hosted API, no key, no bill. The paid hosted option is only ever *mentioned*.
 
 **Is `--dangerously-skip-permissions` ever used on my machine?** No. Only `/isolate` mentions it, and only inside the Docker container it builds, which mounts a single project folder and nothing else.
 
-**Where does everything live?** Skills: `~/.claude/skills/`. Tools, templates, manager: `~/.claude/claude-control/`. Project wiring: the `CLAUDE.md` you copy in.
+**Where does everything live?** Skills: `~/.claude/skills/`. Tools, templates, manager, external clones: `~/.claude/claude-control/`. Project wiring: the `CLAUDE.md` you copy in.
 
-**How do I update?** `git pull` then re-run the installer (or use `--symlink` mode once and never think about it again).
+**Do external skills (gstack, etc.) get modified?** Never. They're cloned under `claude-control/external/` and installed by symlink (or copy on Windows); the loader only reads them. The skill manager marks them read-only and refuses to write. Their invocation names come from their own `SKILL.md` frontmatter, so `/review` etc. work exactly as their authors intended.
+
+**How do I update?** For claude-control itself: `git pull` then re-run the installer (or use `--symlink` mode once and never think about it again). For external skills: `skillsource.py sync all`, or the **sync / update** button in the manager's sources panel.
 
 **How do I remove it?** `./install.sh --uninstall` or `install.ps1 -Uninstall`. Backups made at install time are left untouched.
 

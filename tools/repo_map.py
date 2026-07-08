@@ -14,6 +14,31 @@ LANG = {".py": "Python", ".js": "JavaScript", ".ts": "TypeScript", ".tsx": "TSX"
         ".html": "HTML", ".css": "CSS", ".sql": "SQL", ".yml": "YAML", ".yaml": "YAML", ".json": "JSON"}
 ENTRY_HINTS = ("main", "index", "app", "cli", "server", "manage", "__main__")
 JS_SYM = re.compile(r"^\s*export\s+(?:default\s+)?(?:async\s+)?(?:function|class|const)\s+([A-Za-z_$][\w$]*)", re.M)
+# Regex symbol extractors for languages without a stdlib parser (best-effort, exported/top-level).
+REGEX_SYM = {
+    ".go":   re.compile(r"^func\s+(?:\([^)]*\)\s*)?([A-Z]\w*)|^type\s+([A-Z]\w*)\s+(?:struct|interface)", re.M),
+    ".rs":   re.compile(r"^\s*(?:pub\s+)?(?:async\s+)?fn\s+(\w+)|^\s*(?:pub\s+)?(?:struct|enum|trait)\s+(\w+)", re.M),
+    ".rb":   re.compile(r"^\s*(?:class|module)\s+([A-Z]\w*)|^\s*def\s+([\w?!]+)", re.M),
+    ".java": re.compile(r"^\s*(?:public|protected|private)?\s*(?:static\s+)?(?:final\s+)?(?:abstract\s+)?(?:class|interface|enum|record)\s+(\w+)", re.M),
+    ".kt":   re.compile(r"^\s*(?:class|object|interface)\s+(\w+)|^\s*fun\s+(\w+)", re.M),
+    ".php":  re.compile(r"^\s*(?:abstract\s+|final\s+)?(?:class|interface|trait)\s+(\w+)|^\s*function\s+(\w+)", re.M),
+    ".cs":   re.compile(r"^\s*(?:public|internal|private|protected)?\s*(?:static\s+|sealed\s+|abstract\s+|partial\s+)*(?:class|interface|struct|record|enum)\s+(\w+)", re.M),
+}
+JS_EXTS = (".js", ".ts", ".tsx", ".jsx", ".mjs", ".cjs")
+SYM_EXTS = (".py",) + JS_EXTS + tuple(REGEX_SYM)
+
+
+def regex_symbols(text, pattern, limit=12):
+    """Flatten multi-group regex matches into a unique, ordered symbol list."""
+    out, seen = [], set()
+    for m in pattern.findall(text):
+        name = next((g for g in (m if isinstance(m, tuple) else (m,)) if g), "")
+        if name and name not in seen:
+            seen.add(name)
+            out.append(name)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def keep(rel):
@@ -75,12 +100,14 @@ def main():
     lines += [f"- {p.relative_to(root)} (~{tokens(size[p]):,} tok)" for p in big]
     lines += ["", "## Symbols (top-level, per source file)"]
     used = tokens(len("\n".join(lines)))
-    src = sorted([f for f in fs if f.suffix in (".py", ".js", ".ts", ".tsx", ".jsx")], key=lambda p: -size[p])
+    src = sorted([f for f in fs if f.suffix in SYM_EXTS], key=lambda p: -size[p])
     for p in src:
         if p.suffix == ".py":
             syms = py_symbols(p)
-        else:
+        elif p.suffix in JS_EXTS:
             syms = JS_SYM.findall(p.read_text(errors="replace"))[:12]
+        else:
+            syms = regex_symbols(p.read_text(errors="replace"), REGEX_SYM[p.suffix])
         if not syms:
             continue
         chunk = f"- **{p.relative_to(root)}**: " + "; ".join(str(s) for s in syms[:10])

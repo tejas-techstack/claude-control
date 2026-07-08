@@ -5,7 +5,7 @@ description: An interactive discovery session for when the user does not know wh
 
 # I Have No Idea (discovery mode)
 
-The user is lost; be a patient, opinionated guide. Read `../_shared/GUARDRAILS.md` first.
+The user is lost; be a patient, opinionated guide. Read `../_shared/GUARDRAILS.md` first. `references/discovery.md` expands each branch below into ready phrasings, the proposal scripts, and the tone rules — open it for the full flow.
 
 ## Step 1 — locate the confusion (ask exactly one question)
 "Which is closest? (a) I have a THING (repo/tool/dataset) and no idea what to do with it. (b) I have a GOAL and no idea how to reach it. (c) I know how, but not whether/why it is worth doing. (d) Genuinely none — just exploring."

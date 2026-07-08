@@ -9,7 +9,7 @@ Loop until green or provably impossible. Read `../_shared/GUARDRAILS.md` first â
 
 ## Workflow
 1. **Plan first**: expand the requirements into a checklist with a verification command per item (e.g., "docker" -> `docker --version` AND `docker run hello-world`). Show the checklist.
-2. **Detect the system**: OS, arch, package managers present (apt/dnf/brew/winget/choco), shells, existing versions. Never assume.
+2. **Detect the system**: run `bash scripts/detect_env.sh` â€” it reports OS, arch, package managers, shells, and versions of common toolchains, and flags the right install route (sudo vs user-space, brew vs apt vs dnf). Never assume; probe first. (Windows: use the equivalent `Get-Command`/`winget`/`choco` checks.)
 3. **Execute per item, in dependency order**:
    - Prefer user-space installs (pipx, npm prefix, ~/.local, official user installers) over system-wide. sudo/system-wide only with explicit consent per command.
    - Install -> **verify with the real command** -> on failure, read the actual error, fix (missing dep, PATH, version pin), retry. Up to 3 distinct strategies per item (e.g., apt -> official script -> build from source) before declaring it blocked.

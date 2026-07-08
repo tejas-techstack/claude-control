@@ -10,8 +10,8 @@ Stand up meaningful tests and a free CI pipeline. Read `../_shared/GUARDRAILS.md
 ## Workflow
 1. **Detect the stack** — look for pyproject.toml/package.json/go.mod/Cargo.toml/pom.xml. Run `python3 <claude-control>/tools/repo_map.py` on unfamiliar repos instead of reading everything.
 2. **Find what matters** — identify the 3-7 critical paths (money, auth, data-mutation, core algorithm). Test those first; do NOT chase 100% coverage of getters.
-3. **Scaffold tests** with the ecosystem default: pytest / vitest or jest / go test / cargo test. Include: one happy path, one edge case, one failure case per critical path. Make them runnable with a single command; document it.
-4. **CI pipeline** — write `.github/workflows/ci.yml`: trigger on push+PR, matrix only if it earns its cost, steps = checkout, setup runtime with caching, install, lint, test. GitHub Actions is free for public repos and has a free monthly quota for private ones — state this.
+3. **Scaffold tests** with the ecosystem default: pytest / vitest or jest / go test / cargo test. Include: one happy path, one edge case, one failure case per critical path. Make them runnable with a single command; document it. `references/testing-playbook.md` covers what to test first, per-stack conventions, test doubles, and pinning legacy behavior before a refactor.
+4. **CI pipeline** — copy the matching `assets/ci/{python,node,go}.yml` into `.github/workflows/ci.yml` and adjust versions: trigger on push+PR, cache deps, lint + test, matrix only if it earns its cost. GitHub Actions is free for public repos and has a free monthly quota for private ones — state this.
 5. **Optional (offer, do not force):** pre-commit hooks (format+lint), coverage report step, release workflow on tags.
 6. **Prove it** — run the tests locally. A red suite must never be delivered as done. If CI can only be verified after push, say so; pushing requires user consent.
 

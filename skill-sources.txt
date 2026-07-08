@@ -1,0 +1,35 @@
+# claude-control :: external skill sources
+# ---------------------------------------------------------------------------
+# Public, free, git-hosted collections of Claude skills that you want to load
+# ALONGSIDE the 25 skills in this repo. `skillsource.py` (and the installers and
+# the skill manager) read this file, clone/pull each repo, and install every
+# folder that contains a SKILL.md — WITHOUT ever editing the upstream skills.
+#
+# Format (one source per line, blank lines and #comments ignored):
+#     <name>  <git-url>  [subdir=.]  [ref=<branch-or-tag>]  [prefix=<name>-]
+#
+#   name    short id you'll use with `skillsource.py sync <name>` (a-z0-9-_)
+#   git-url anything `git clone` accepts (https recommended, no auth)
+#   subdir  where skills live inside the repo (default: repo root, searched
+#           recursively for */SKILL.md)
+#   ref     branch or tag to pin (default: the repo's default branch)
+#   prefix  installed-folder prefix to avoid name clashes (default: "<name>-")
+#           set prefix= (empty) to install skills under their own folder names
+#
+# Nothing here is fetched automatically on a plain install. You opt in with:
+#     ./install.sh --with-external            (all enabled sources)
+#     python3 tools/skillsource.py sync gstack
+#     ...or the "sources" panel in the skill manager.
+# ---------------------------------------------------------------------------
+
+# Garry Tan's opinionated Claude Code stack — the "gstack"/gchat skills:
+# CEO / eng-manager / designer / reviewer / QA / security / release personas.
+gstack            https://github.com/garrytan/gstack
+
+# Anthropic's official public Agent Skills (document, creative, technical...).
+# Skills live in subfolders, so we search the whole tree.
+anthropic-skills  https://github.com/anthropics/skills
+
+# --- add your own below; a couple of examples (commented out) ---------------
+# my-team-skills  https://github.com/your-org/claude-skills   subdir=skills
+# pinned-example  https://github.com/some/repo                ref=v1.2.0  prefix=

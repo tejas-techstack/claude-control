@@ -5,7 +5,7 @@ description: Rewrite AI-flavored writing and code artifacts (comments, docstring
 
 # Humanizer (de-AI text and code artifacts)
 
-Remove the tells, keep the substance, do not gut legitimate prose. Read `../_shared/GUARDRAILS.md` first.
+Remove the tells, keep the substance, do not gut legitimate prose. Read `../_shared/GUARDRAILS.md` first. The full catalog of prose + code tells (each with a fix, plus before/after guidance and the "do not overcorrect" rules) is in `references/ai-tells.md` — open it when doing a thorough pass; the summary below is the quick version.
 
 ## Tells to hunt (prose)
 - Significance inflation ("pivotal", "testament to", "in todays fast-paced world"), promotional adjectives ("seamless", "robust", "vibrant"), AI vocabulary ("delve", "leverage", "tapestry", "landscape", "crucial").

@@ -19,10 +19,11 @@ Ask the 5-7 highest-leverage questions in a single message: goal in one sentence
 3. **Constraints** — stack, environment, budget (default: free), security/privacy needs, existing code it must fit.
 4. **Edges** — the 3 worst inputs, failure behavior, concurrency, migration.
 5. **Done** — measurable acceptance criteria, non-goals, how the user will verify.
-Challenge contradictions politely and immediately. Offer defaults so answering is cheap ("Default X — object?").
+6. **Hidden assumptions** — surface and challenge anything the request takes for granted.
+Draw the exact questions (plus domain add-ons for web/data/CLI/API/ML/automation) from `references/question-bank.md`. Challenge contradictions politely and immediately. Offer defaults so answering is cheap ("Default X — object?").
 
 ## Output format
-Write `SPEC.md`: Goal / Users / Requirements (MoSCoW) / Non-goals / Constraints / Acceptance criteria / Open questions. End with: "Reply APPROVE to lock this spec; building starts only after approval."
+Write `SPEC.md` from `assets/SPEC-template.md`: Goal / Users / Requirements (MoSCoW) / Non-goals / Constraints / Interfaces & data / Edge cases / Acceptance criteria / How the user verifies / Open questions. End with: "Reply APPROVE to lock this spec; building starts only after approval."
 
 ## Chaining
 - Input: a raw idea; pairs with /i-have-no-idea when even the idea is unclear.

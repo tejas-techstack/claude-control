@@ -1,0 +1,26 @@
+# .github/workflows/scheduled.yml — run a job on a schedule, free quota, no server.
+# Also runnable on demand via the Actions tab (workflow_dispatch).
+name: scheduled-job
+on:
+  schedule:
+    - cron: "0 9 * * *"      # daily 09:00 UTC (note: Actions cron is UTC only)
+  workflow_dispatch:          # manual "Run workflow" button
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Do the thing
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}   # set in repo Settings → Secrets
+        run: python job.py
+      # Optional: commit results back to the repo
+      # - run: |
+      #     git config user.name  "actions-bot"
+      #     git config user.email "actions@users.noreply.github.com"
+      #     git add -A && git commit -m "scheduled update" && git push || echo "nothing to commit"
