@@ -24,7 +24,7 @@ no generic advice. Keep under ~150 lines; merge new learnings, delete invalidate
 - <"tests fail unless TZ=UTC" — the specific trap and its fix>
 
 ## Architecture in one breath
-<!-- 3-5 lines: entry points, the load-bearing files (graphify centrality), where NOT to look -->
+<!-- 3-5 lines: entry points, the load-bearing files (import centrality), where NOT to look -->
 - Entry: `...` · Core: `...` · Generated/vendored (don't read): `...`
 
 ## Best pipelines for this repo's recurring tasks

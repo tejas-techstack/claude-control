@@ -5,9 +5,10 @@ Stdlib-only Python scripts. No pip installs, no network. Point Claude at these b
 | Tool | What it does | Typical call |
 |---|---|---|
 | `repo_map.py` | Token-cheap overview: layout, languages, entry points, symbols, TODOs | `python3 tools/repo_map.py . --out REPO_MAP.md` |
-| `graphify.py` | Import/dependency graph + centrality ranking (Mermaid + JSON) | `python3 tools/graphify.py . --out docs/GRAPH.md` |
-| `context_pack.py` | Budgeted context pack: README + most central files, truncated smartly | `python3 tools/context_pack.py . --budget 8000` |
+| `context_pack.py` | Budgeted context pack: README + most central files (import in-degree), truncated smartly | `python3 tools/context_pack.py . --budget 8000` |
 | `chores.py` | Detects and runs mechanical work (format/lint/test/typecheck/audit) so the AI doesn't burn tokens on it | `python3 tools/chores.py list` |
 | `skillsource.py` | Loads **external** skill repos (gstack, anthropic-skills, your own) into `~/.claude/skills/` without editing them — shared by the installers and the skill manager | `python3 tools/skillsource.py sync all` |
 
 The installer copies these to `~/.claude/claude-control/tools/`, and `templates/CLAUDE.md` wires the token tools into any project so Claude uses them automatically. `skillsource.py` is the odd one out — it's not a token tool, it's the engine behind the external-skills loader (see the main README's "Loading external skills" section).
+
+**Deep graphs → `/graphify`.** The old stdlib `graphify.py` has been retired in favor of [graphify](https://github.com/safishamsi/graphify) by [@safishamsi](https://github.com/safishamsi) — a local Claude Code skill that builds an interactive knowledge graph (`graph.html`, `GRAPH_REPORT.md`, god-node detection). The installer offers to set it up (`pip install graphifyy && graphify install`); then run `/graphify .` in any repo. For a quick, zero-dependency map of "which files matter", `context_pack.py` still ranks files by import in-degree on its own.

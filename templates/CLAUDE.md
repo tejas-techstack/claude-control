@@ -2,7 +2,7 @@
 
 ## Token thrift — the 80/20 rule
 - BEFORE exploring this repo, run `python3 ~/.claude/claude-control/tools/repo_map.py . --out REPO_MAP.md` and read the map, not the raw tree.
-- For structure questions, run `python3 ~/.claude/claude-control/tools/graphify.py .`; read the central files it names first.
+- For structure questions, run `python3 ~/.claude/claude-control/tools/context_pack.py .` to surface the most central files (by import in-degree); read those first. For a deep dependency/knowledge graph, use the `/graphify .` skill if installed.
 - Never read generated, vendored, or lock files.
 
 ## Delegate mechanical work to scripts

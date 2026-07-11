@@ -7,7 +7,7 @@ claude-control/
 ├── install.sh / install.ps1     one-shot installers (idempotent, back up conflicts)
 ├── skills/                      25 skills + _shared/GUARDRAILS.md
 ├── skill-sources.txt            external skill repos to load (gstack, anthropic-skills, …)
-├── tools/                       repo_map, graphify, context_pack, chores, skillsource (stdlib)
+├── tools/                       repo_map, context_pack, chores, skillsource (stdlib)
 ├── skill-manager/               local web UI: edit skills, manage sources, chat with Claude
 ├── templates/CLAUDE.md          drop into any project to wire it all up
 └── README.md · LICENSE (MIT) · VERSION
@@ -55,7 +55,7 @@ Everything here runs *inside* Claude Code — the terminal CLI and the VS Code /
 - **Explicitly** — type the slash command with your ask: `/research diffusion model watermarking`, `/guide where is auth handled?`, `/humanize this repo`. In VS Code, start the message with `/` and pick from the popup.
 - **Automatically** — you don't have to name skills. Each `SKILL.md` has a trigger-rich `description`, so a plain request like *"find me a well-tested rate-limiter library"* makes Claude reach for `/github-explore` on its own. Not sure which to use? Run **`/skill-suggestions`** and it routes you; run **`/skills-interleave`** to chain several into a pipeline.
 
-**3 — Let the tools save you tokens.** Drop `templates/CLAUDE.md` into a project as `CLAUDE.md` and Claude will, on its own, run `repo_map.py` / `graphify.py` before reading a big repo and hand mechanical work (format, lint, test) to `chores.py`. You can also just ask: *"map this repo first"* or *"run the chores."* Nothing is auto-run without that wiring or your say-so.
+**3 — Let the tools save you tokens.** Drop `templates/CLAUDE.md` into a project as `CLAUDE.md` and Claude will, on its own, run `repo_map.py` / `context_pack.py` before reading a big repo and hand mechanical work (format, lint, test) to `chores.py`. You can also just ask: *"map this repo first"* or *"run the chores."* Nothing is auto-run without that wiring or your say-so.
 
 **4 — Open the skill manager next to your editor.** Launch `~/.claude/claude-control/bin/skill-manager` (Windows: `skill-manager.cmd`) from any terminal — in VS Code use the **integrated terminal**, then open `http://127.0.0.1:8765` in the built-in **Simple Browser** (`Cmd/Ctrl-Shift-P → Simple Browser: Show`) so it sits beside your code. Edit skills, toggle them, add external sources, and chat with Claude — it reuses your existing Claude Code login, no API key needed.
 
@@ -129,9 +129,10 @@ Stdlib-only Python, installed to `~/.claude/claude-control/tools/`, wired in via
 | Tool | Purpose |
 |---|---|
 | `repo_map.py` | Token-cheap repo overview: layout, languages, entry points, symbols, TODOs (`--budget`, default ~3k tokens) |
-| `graphify.py` | Import/dependency graph as Mermaid + centrality ranking — find the files that matter |
-| `context_pack.py` | Budgeted CONTEXT_PACK.md: README + most central files, smart head+tail truncation |
+| `context_pack.py` | Budgeted CONTEXT_PACK.md: README + most central files (by import in-degree), smart head+tail truncation |
 | `chores.py` | Detects and runs mechanical work (format/lint/test/typecheck/audit) so the model never does it token-by-token |
+
+For a **deep dependency/knowledge graph** (interactive `graph.html`, `GRAPH_REPORT.md`, "god node" detection), claude-control now uses **[graphify](https://github.com/safishamsi/graphify)** by [@safishamsi](https://github.com/safishamsi) instead of a hand-rolled script. It's a Claude Code skill that runs fully locally — the installer offers to set it up (`pip install graphifyy && graphify install`), after which you invoke it in any repo with `/graphify .`. See **Acknowledgments** below.
 
 ## The skill manager
 
@@ -156,5 +157,17 @@ Browse and edit every skill, create new ones from a template, enable/disable (mo
 **How do I update?** For claude-control itself: `git pull` then re-run the installer (or use `--symlink` mode once and never think about it again). For external skills: `skillsource.py sync all`, or the **sync / update** button in the manager's sources panel.
 
 **How do I remove it?** `./install.sh --uninstall` or `install.ps1 -Uninstall`. Backups made at install time are left untouched.
+
+## Acknowledgments
+
+claude-control stands on other people's work. Credit where it's due — please keep these intact if you fork:
+
+| Project | Author | Used for | License |
+|---|---|---|---|
+| [graphify](https://github.com/safishamsi/graphify) | [@safishamsi](https://github.com/safishamsi) | Deep dependency/knowledge-graph tool (`/graphify .`), replacing our old stdlib `graphify.py` | see upstream repo |
+| [gstack](https://github.com/garrytan/gstack) | [Garry Tan (@garrytan)](https://github.com/garrytan) | Optional external skill collection ("virtual eng team": product/eng/design/QA/security) | see upstream repo |
+| [anthropics/skills](https://github.com/anthropics/skills) | [Anthropic](https://github.com/anthropics) | Optional external skill collection (official document/creative/technical Agent Skills) | see upstream repo |
+
+External collections are cloned unmodified under `~/.claude/claude-control/external/` and installed read-only, so upstream is never altered. graphify is installed from its own PyPI package / repo and invoked as its authors intend. If you add sources to `skill-sources.txt`, credit them here too.
 
 MIT licensed. Built to be forked.

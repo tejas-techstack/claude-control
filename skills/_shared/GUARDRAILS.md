@@ -17,7 +17,7 @@ These rules override convenience. If a skill workflow conflicts with a rule here
 - Destructive commands (rm -rf, force-push, DROP, resets) require showing the exact command and getting confirmation first.
 
 ## 4. Token thrift (the 80/20 rule)
-- Before reading a large or unfamiliar repo, run the claude-control tools (repo_map.py, graphify.py) and read their output instead of reading files blindly.
+- Before reading a large or unfamiliar repo, run the claude-control tools (repo_map.py, context_pack.py) and read their output instead of reading files blindly. For a deep dependency/knowledge graph, use the `/graphify .` skill.
 - Delegate mechanical, repetitive work (formatting, linting, running tests, bulk renames) to scripts — chores.py list — rather than doing it token-by-token.
 - Read only the files the task actually needs. Summaries before full files.
 

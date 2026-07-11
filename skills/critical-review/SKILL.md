@@ -14,7 +14,7 @@ Brutal means evidence and severity, not cruelty or doom. Read `../_shared/GUARDR
 
 ## Workflow
 1. Scope with the user in one question: whole repo, a diff, a doc, or a plan? Depth: skim or deep?
-2. Map first (repo_map.py/graphify.py for code), then examine against the rubric: correctness, security, data integrity, architecture and coupling, error handling, tests, performance where it matters, docs/onboarding, and (for plans) feasibility and hidden assumptions. `references/rubric.md` has the concrete per-domain checklists (what to actually look for in each) — work through the ones that fit the subject.
+2. Map first (repo_map.py/context_pack.py for code; `/graphify .` for a deep dependency graph), then examine against the rubric: correctness, security, data integrity, architecture and coupling, error handling, tests, performance where it matters, docs/onboarding, and (for plans) feasibility and hidden assumptions. `references/rubric.md` has the concrete per-domain checklists (what to actually look for in each) — work through the ones that fit the subject.
 3. Classify findings: CRITICAL (will cause damage) / MAJOR (will cause pain) / MINOR (worth fixing, not urgent). Cap MINOR at 5 — this is a review, not a lint run.
 
 ## Output format

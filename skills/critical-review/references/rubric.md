@@ -30,7 +30,7 @@ Every finding carries: **evidence** (file:line, quote, or reproduced behavior) â
 
 ## Architecture & coupling
 
-- One module that knows about everything (god object); circular deps (check `graphify.py`).
+- One module that knows about everything (god object); circular deps (surface these with the `/graphify .` skill's god-node/community detection).
 - Leaky abstractions; business logic in the controller/UI; DB schema leaking into the API.
 - Hidden global state; singletons that make testing impossible.
 - Change amplification: "to add a field I must edit 7 files."

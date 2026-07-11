@@ -1,6 +1,6 @@
 # Repo navigation patterns
 
-Turn a maze into a map cheaply. Build the map with `repo_map.py` + `graphify.py` and read the outputs, not the whole repo. The load-bearing files are the ones with high import in-degree (graphify centrality) — read those first; they explain the most per token.
+Turn a maze into a map cheaply. Build the map with `repo_map.py` + `context_pack.py` and read the outputs, not the whole repo. The load-bearing files are the ones with high import in-degree (context_pack computes this) — read those first; they explain the most per token. For a deeper picture, the `/graphify .` skill builds an interactive dependency/knowledge graph with god-node detection.
 
 ## "If you want X, look in Y" — where things usually live
 

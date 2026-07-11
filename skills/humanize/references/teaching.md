@@ -1,6 +1,6 @@
 # Teaching a codebase — frameworks & question bank
 
-Two phases: teach, then verify. Goal is real understanding, not a wall of facts. Use `repo_map.py`/`graphify.py` first and read only the central files (token thrift), then teach from evidence (file/line pointers), never vibes.
+Two phases: teach, then verify. Goal is real understanding, not a wall of facts. Use `repo_map.py`/`context_pack.py` first and read only the central files (token thrift), then teach from evidence (file/line pointers), never vibes.
 
 ## Phase A — teach (in this order)
 

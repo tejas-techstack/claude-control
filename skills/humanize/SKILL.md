@@ -8,7 +8,7 @@ description: Explain a codebase or repository in human terms so the user truly u
 Two phases: teach, then verify. Read `../_shared/GUARDRAILS.md` first.
 
 ## Phase A — Teach
-Run `python3 <claude-control>/tools/repo_map.py` and `graphify.py` first; read maps, then only the central files (token thrift). Then produce, in this order:
+Run `python3 <claude-control>/tools/repo_map.py` and `context_pack.py` first; read maps, then only the central files (token thrift). For a deep dependency/knowledge graph, use the `/graphify .` skill. Then produce, in this order:
 1. **Plain-language explanation** — what the system does, for whom, and how data flows through it, in words a smart newcomer gets. Analogies encouraged; jargon defined on first use.
 2. **What makes THIS one special** — the specific design decisions, tricks, or constraints that distinguish it (with file/line pointers as evidence, never vibes).
 3. **Similar systems** — 2-4 comparable projects (search the web if needed) and a one-line "same/different" per project, so specialness has context.

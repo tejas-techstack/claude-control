@@ -8,7 +8,7 @@ description: Generate a curated, prioritized list of improvements for the curren
 A short list that changes the project, not a dump of nitpicks. Read `../_shared/GUARDRAILS.md` first.
 
 ## Workflow
-1. Map the repo with `repo_map.py`/`graphify.py`; skim only central files, tests, CI, and README.
+1. Map the repo with `repo_map.py`/`context_pack.py` (or the `/graphify .` skill for a deep graph); skim only central files, tests, CI, and README.
 2. Collect candidates across: correctness bugs, security holes, missing tests on critical paths, architecture debt that blocks change, performance with real user impact, developer experience (setup pain, docs), and missing table-stakes features.
 3. **Curate hard**: max 10 items. Cut anything that is a micro-optimization or pure style. Every item needs evidence (file:line or a reproduced behavior).
 4. Score each: Impact (H/M/L) x Effort (H/M/L). Order by Impact desc, Effort asc. `references/rubric.md` has the candidate categories, the impact×effort matrix, the evidence standard, and an explicit "what NOT to include" list.
