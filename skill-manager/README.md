@@ -36,6 +36,26 @@ The **sources** button manages the git repos listed in `skill-sources.txt`. For 
 
 Synced skills show a **source badge** and a 🔒 in the list, and open **read-only** — the manager refuses to write to them (HTTP 403) so your upstream copies stay pristine. Use the **filter dropdown** to view `all`, `local only`, or one source at a time (handy once gstack adds ~50 skills). Everything here just shells out to the same `tools/skillsource.py` the installers use, so the CLI and the UI can never drift apart.
 
+## Read-only web index (GitHub Pages)
+
+The server above is for *managing* skills locally. To *publish* a read-only, always-current
+index of every skill and tool — no editing, no backend — build the static site:
+
+```bash
+python3 skill-manager/build_static.py          # writes ./site/index.html (self-contained)
+python3 -m http.server -d site 8123            # preview at http://127.0.0.1:8123
+```
+
+It walks this repo's `skills/` and `tools/`, plus every **external** skill installed via
+claude-control (the `external/installed.json` sources **and** graphify), and bakes each file's
+contents into one self-contained `index.html` — markdown rendered, code shown as-is, nothing
+editable. `site/` is a build artifact (git-ignored); the viewer template lives in
+`static/viewer.html`.
+
+`.github/workflows/pages.yml` runs this on every push to `main` and deploys to GitHub Pages,
+so the published index auto-updates. Enable it once under **Settings → Pages → Source:
+GitHub Actions**. Live URL: `https://<owner>.github.io/<repo>/`.
+
 ## Claude chat backends
 
 1. **`claude` CLI** (preferred) — uses your existing Claude Code login. Nothing to configure.

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-control · skill &amp; tool index</title>
+<meta name="description" content="A read-only, always-current index of the claude-control skills and tools.">
+<style>
+  :root{
+    --ink:#0f1216; --panel:#161b21; --panel-2:#1c232b; --line:#2a333d;
+    --text:#d8dee5; --dim:#8d99a6; --brass:#c9a15a; --brass-dim:#8a713f;
+    --ok:#7fb069; --danger:#c26d5c;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);font-size:14px}
+  ::selection{background:var(--brass);color:#141414}
+  a{color:var(--brass)}
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+  /* header — stamped toolplate */
+  header{display:flex;align-items:baseline;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);
+         background:linear-gradient(180deg,#171d24,#12171d)}
+  header h1{margin:0;font:600 15px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase}
+  header h1 b{color:var(--brass);font-weight:600}
+  header .ro{font:11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--brass);
+             border:1px solid var(--brass-dim);border-radius:4px;padding:3px 8px}
+  header .meta{font:12px var(--mono);color:var(--dim);margin-left:auto}
+  header a.gh{font:12px var(--mono);color:var(--dim);text-decoration:none;border-bottom:1px dotted var(--line)}
+  header a.gh:hover{color:var(--brass)}
+
+  main{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 49px)}
+  @media (max-width:820px){ main{grid-template-columns:1fr} .reader{display:none} main.reading .side{display:none} main.reading .reader{display:flex} }
+
+  /* left: the drawer spine */
+  .side{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .side .bar{display:flex;gap:8px;padding:12px}
+  .side input[type=search]{flex:1;background:var(--ink);border:1px solid var(--line);color:var(--text);
+      border-radius:6px;padding:7px 10px;font:13px var(--mono)}
+  .list{overflow-y:auto;flex:1;padding:0 8px 24px}
+  .group{font:11px var(--mono);letter-spacing:.18em;color:var(--dim);text-transform:uppercase;
+         padding:16px 8px 6px;border-bottom:1px dashed var(--line);margin-bottom:6px}
+  .group .n{color:var(--brass)}
+  .drawer{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:transparent;
+      border:1px solid transparent;border-left:2px solid var(--line);color:var(--text);
+      padding:8px 10px;margin:2px 0;border-radius:0 6px 6px 0;cursor:pointer}
+  .drawer:hover{background:var(--panel-2)}
+  .drawer.sel{background:var(--panel-2);border-left-color:var(--brass)}
+  .drawer .pip{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;
+      background:var(--ok);box-shadow:0 0 0 2px rgba(127,176,105,.15)}
+  .drawer.tool .pip{background:var(--brass);box-shadow:0 0 0 2px rgba(201,161,90,.15)}
+  .drawer .nm{font:600 13px var(--mono)}
+  .drawer .src{font:10px var(--mono);color:var(--brass-dim);border:1px solid var(--brass-dim);
+      border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:.04em;white-space:nowrap}
+  .drawer .ds{color:var(--dim);font-size:12px;line-height:1.35;margin-top:2px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* right: reading bench */
+  .reader{display:flex;flex-direction:column;min-width:0;min-height:0}
+  .readerbar{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .readerbar .back{display:none;font:12px var(--mono);color:var(--dim);background:transparent;border:1px solid var(--line);
+      border-radius:6px;padding:5px 9px;cursor:pointer}
+  @media (max-width:820px){ .readerbar .back{display:inline-block} }
+  .readerbar .title{font:600 15px var(--mono);color:var(--brass)}
+  .readerbar .path{font:11px var(--mono);color:var(--dim)}
+  .tabs{display:flex;gap:4px;padding:8px 16px 0;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .tab{font:12px var(--mono);color:var(--dim);background:transparent;border:1px solid var(--line);
+      border-bottom:none;border-radius:6px 6px 0 0;padding:6px 11px;cursor:pointer;margin-bottom:-1px}
+  .tab.sel{color:var(--brass);background:var(--panel);border-bottom:1px solid var(--panel)}
+  .tab:hover{color:var(--text)}
+  .content{overflow-y:auto;flex:1;padding:26px 32px 80px}
+  .empty{display:flex;height:100%;align-items:center;justify-content:center;color:var(--dim);
+         font:13px var(--mono);text-align:center;padding:0 24px}
+
+  /* rendered markdown */
+  .md{max-width:78ch;line-height:1.6}
+  .md h1,.md h2,.md h3,.md h4{font-family:var(--mono);color:#eef2f6;line-height:1.25;margin:1.6em 0 .5em}
+  .md h1{font-size:1.7rem;letter-spacing:.01em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  .md h2{font-size:1.3rem;color:var(--brass)}
+  .md h3{font-size:1.08rem}
+  .md h4{font-size:.98rem;color:var(--dim)}
+  .md p{margin:.7em 0}
+  .md ul,.md ol{margin:.6em 0;padding-left:1.5em}
+  .md li{margin:.25em 0}
+  .md code{font-family:var(--mono);font-size:.88em;background:var(--panel-2);border:1px solid var(--line);
+      border-radius:4px;padding:.1em .35em}
+  .md pre{background:#0b0e12;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:1em 0}
+  .md pre code{background:none;border:none;padding:0;font-size:.85em;line-height:1.5;display:block;color:#cbd5df}
+  .md blockquote{border-left:3px solid var(--brass-dim);margin:1em 0;padding:.2em 1em;color:var(--dim);background:var(--panel)}
+  .md hr{border:none;border-top:1px dashed var(--line);margin:1.6em 0}
+  .md table{border-collapse:collapse;margin:1em 0;display:block;overflow-x:auto;font-size:.92em}
+  .md th,.md td{border:1px solid var(--line);padding:7px 11px;text-align:left}
+  .md th{background:var(--panel-2);font-family:var(--mono);color:var(--brass);font-weight:600}
+  .md a{text-decoration:none;border-bottom:1px solid var(--brass-dim)}
+  .md strong{color:#eef2f6}
+
+  /* raw code file */
+  pre.raw{background:#0b0e12;border:1px solid var(--line);border-radius:8px;padding:16px 18px;overflow-x:auto;
+      font:12.5px/1.55 var(--mono);color:#cbd5df;white-space:pre;max-width:100%}
+
+  footer{padding:22px 32px;color:var(--dim);font:11px var(--mono);border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header>
+  <h1><b>claude</b>-control</h1>
+  <span class="ro">read-only index</span>
+  <span class="meta" id="meta"></span>
+</header>
+
+<main id="main">
+  <aside class="side">
+    <div class="bar">
+      <input type="search" id="search" placeholder="filter skills &amp; tools…" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+
+  <section class="reader">
+    <div class="readerbar">
+      <button class="back" id="back" type="button">‹ index</button>
+      <span class="title" id="title"></span>
+      <span class="path" id="path"></span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="content" id="content">
+      <div class="empty" id="empty">Select a skill or tool on the left to read it.<br>Everything here is a live, read-only snapshot of the repo.</div>
+    </div>
+    <footer id="footer"></footer>
+  </section>
+</main>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const DATA = JSON.parse($("#data").textContent);
+let selected = null, curFile = null;
+
+/* ---------- tiny, safe markdown renderer ---------- */
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function inline(s){
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, (_,c)=>"<code>"+c+"</code>");
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+    (_,t,u)=> /^(https?:|#|\.|\/)/.test(u) ? '<a href="'+u+'" rel="noopener">'+t+'</a>' : t);
+  return s;
+}
+function renderMd(src){
+  src = src.replace(/\r\n/g,"\n");
+  // strip a leading YAML frontmatter block so it doesn't render as body text
+  if(src.startsWith("---\n")){
+    const end = src.indexOf("\n---", 3);
+    if(end !== -1){ src = src.slice(src.indexOf("\n", end+1)+1); }
+  }
+  const lines = src.split("\n");
+  let html = "", i = 0;
+  const listStack = [];
+  function closeLists(to){ while(listStack.length>to){ html += "</"+listStack.pop()+">"; } }
+  while(i < lines.length){
+    let ln = lines[i];
+    // fenced code
+    const fence = ln.match(/^\s*```(\w*)/);
+    if(fence){ closeLists(0); i++; let buf=[];
+      while(i<lines.length && !/^\s*```/.test(lines[i])){ buf.push(lines[i]); i++; }
+      i++; html += "<pre><code>"+esc(buf.join("\n"))+"</code></pre>"; continue; }
+    // table (header row followed by | --- |)
+    if(/^\s*\|.*\|\s*$/.test(ln) && i+1<lines.length && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i+1]) && lines[i+1].includes("-")){
+      closeLists(0);
+      const cells = r => r.replace(/^\s*\|/,"").replace(/\|\s*$/,"").split("|").map(c=>c.trim());
+      const head = cells(ln); i += 2;
+      let t = "<table><thead><tr>"+head.map(h=>"<th>"+inline(h)+"</th>").join("")+"</tr></thead><tbody>";
+      while(i<lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){
+        t += "<tr>"+cells(lines[i]).map(c=>"<td>"+inline(c)+"</td>").join("")+"</tr>"; i++;
+      }
+      html += t+"</tbody></table>"; continue;
+    }
+    let m;
+    if((m = ln.match(/^(#{1,4})\s+(.*)$/))){ closeLists(0); const n=m[1].length; html += "<h"+n+">"+inline(m[2])+"</h"+n+">"; i++; continue; }
+    if(/^\s*(---|\*\*\*|___)\s*$/.test(ln)){ closeLists(0); html += "<hr>"; i++; continue; }
+    if((m = ln.match(/^\s*>\s?(.*)$/))){ closeLists(0); let buf=[];
+      while(i<lines.length && /^\s*>\s?/.test(lines[i])){ buf.push(lines[i].replace(/^\s*>\s?/,"")); i++; }
+      html += "<blockquote>"+inline(buf.join(" "))+"</blockquote>"; continue; }
+    if((m = ln.match(/^(\s*)([-*+])\s+(.*)$/))){
+      const depth = 1; if(listStack[listStack.length-1] !== "ul"){ closeLists(0); listStack.push("ul"); html+="<ul>"; }
+      html += "<li>"+inline(m[3])+"</li>"; i++; continue; }
+    if((m = ln.match(/^(\s*)(\d+)\.\s+(.*)$/))){
+      if(listStack[listStack.length-1] !== "ol"){ closeLists(0); listStack.push("ol"); html+="<ol>"; }
+      html += "<li>"+inline(m[3])+"</li>"; i++; continue; }
+    if(/^\s*$/.test(ln)){ closeLists(0); i++; continue; }
+    closeLists(0); // paragraph — gather until blank
+    let buf=[ln]; i++;
+    while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,4}\s|\s*[-*+]\s|\s*\d+\.\s|\s*>|\s*```|\s*\|)/.test(lines[i])){ buf.push(lines[i]); i++; }
+    html += "<p>"+inline(buf.join(" "))+"</p>";
+  }
+  closeLists(0);
+  return html;
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  const q = $("#search").value.trim().toLowerCase();
+  const list = $("#list"); list.innerHTML = "";
+  for(const coll of DATA.collections){
+    const items = coll.items.filter(it => !q || it.name.toLowerCase().includes(q) ||
+        (it.description||"").toLowerCase().includes(q));
+    if(!items.length) continue;
+    const g = document.createElement("div"); g.className="group";
+    g.innerHTML = coll.label + " · <span class='n'>"+items.length+"</span>";
+    list.appendChild(g);
+    for(const it of items){
+      const b = document.createElement("button");
+      b.className = "drawer" + (coll.kind==="tool"?" tool":"") + (it.id===(selected&&selected.id)?" sel":"");
+      const nm = document.createElement("span"); nm.className="nm"; nm.textContent = it.name;
+      const ds = document.createElement("div"); ds.className="ds"; ds.textContent = it.description || "(no description)";
+      const wrap = document.createElement("span"); wrap.style.minWidth="0"; wrap.style.flex="1";
+      wrap.appendChild(nm);
+      if(it.source){ const sb=document.createElement("span"); sb.className="src"; sb.textContent = it.source.split(" ")[0]; sb.title = "external · "+it.source; nm.appendChild(sb); }
+      wrap.appendChild(ds);
+      const pip = document.createElement("span"); pip.className="pip";
+      b.appendChild(pip); b.appendChild(wrap);
+      b.onclick = () => select(it);
+      list.appendChild(b);
+    }
+  }
+  if(!list.children.length){
+    const g=document.createElement("div"); g.className="group"; g.textContent="no matches"; list.appendChild(g);
+  }
+}
+
+/* ---------- reader ---------- */
+function select(it){
+  selected = it;
+  curFile = it.files.find(f=>/(^|\/)SKILL\.md$/i.test(f.path)) ? it.files.find(f=>/(^|\/)SKILL\.md$/i.test(f.path)).path
+          : (it.files.find(f=>/README\.md$/i.test(f.path))||it.files[0]||{}).path || null;
+  $("#main").classList.add("reading");
+  $("#title").textContent = it.display || it.name;
+  $("#path").textContent = it.path || "";
+  renderTabs(); renderFile(); renderList();
+  $("#content").scrollTop = 0;
+  location.hash = encodeURIComponent(it.id);
+}
+function renderTabs(){
+  const tabs = $("#tabs"); tabs.innerHTML = "";
+  if(!selected) return;
+  for(const f of selected.files){
+    const t = document.createElement("button");
+    t.className = "tab" + (f.path===curFile?" sel":"");
+    t.textContent = f.path;
+    t.onclick = () => { curFile = f.path; renderTabs(); renderFile(); $("#content").scrollTop=0; };
+    tabs.appendChild(t);
+  }
+}
+function renderFile(){
+  const c = $("#content"); $("#empty").style.display = "none";
+  const f = selected && selected.files.find(x=>x.path===curFile);
+  if(!f){ c.innerHTML=""; return; }
+  if(/\.md$/i.test(f.path)){
+    const d = document.createElement("div"); d.className="md"; d.innerHTML = renderMd(f.content); c.innerHTML=""; c.appendChild(d);
+  } else {
+    const pre = document.createElement("pre"); pre.className="raw"; pre.textContent = f.content; c.innerHTML=""; c.appendChild(pre);
+  }
+}
+
+$("#back").onclick = () => { $("#main").classList.remove("reading"); };
+$("#search").addEventListener("input", renderList);
+
+/* ---------- boot ---------- */
+function findById(id){
+  for(const coll of DATA.collections){ const it = coll.items.find(x=>x.id===id); if(it) return it; }
+  return null;
+}
+$("#meta").textContent = DATA.summary + " · updated " + DATA.generated;
+$("#footer").innerHTML = "Generated from <b style='color:var(--brass)'>"+ (DATA.repo||"the repository") +
+  "</b> — this is a read-only snapshot. To manage skills, run the local skill-manager. Built " + DATA.generated + ".";
+renderList();
+const initial = location.hash ? findById(decodeURIComponent(location.hash.slice(1))) : null;
+if(initial) select(initial);
+</script>
+</body>
+</html>

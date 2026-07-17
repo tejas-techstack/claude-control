@@ -1,0 +1,67 @@
+name: Deploy skill & tool index to Pages
+
+# Rebuilds the read-only static index (skill-manager/build_static.py) and
+# publishes it to GitHub Pages on every push to main, so the site is always
+# current. External skills installed via claude-control (graphify, and any
+# skillsource-synced sources) are indexed too.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a newer push supersede an in-flight deploy; never run two at once.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install graphify so its skill files are indexed. Best-effort: if the
+      # install ever fails, the build still runs and just omits graphify.
+      - name: Install graphify skill (external)
+        continue-on-error: true
+        run: |
+          python -m pip install --upgrade pip
+          pip install graphifyy
+          graphify install --platform claude
+
+      - name: Build read-only index
+        run: |
+          python3 skill-manager/build_static.py \
+            --out site \
+            --extra-skills "$HOME/.claude/skills" \
+            --repo-name "${GITHUB_REPOSITORY}"
+
+      # enablement: true asks GitHub to turn Pages on (Source = GitHub Actions)
+      # automatically on the first run, so no manual Settings step is needed.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
