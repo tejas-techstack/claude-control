@@ -127,6 +127,7 @@
     <div class="tabs" id="tabs"></div>
     <div class="content" id="content">
       <div class="empty" id="empty">Select a skill or tool on the left to read it.<br>Everything here is a live, read-only snapshot of the repo.</div>
+      <div id="doc"></div>
     </div>
     <footer id="footer"></footer>
   </section>
@@ -256,13 +257,18 @@ function renderTabs(){
   }
 }
 function renderFile(){
-  const c = $("#content"); $("#empty").style.display = "none";
+  // Render into #doc — never touch #empty's node, or it vanishes and the next
+  // render throws. #empty and #doc are siblings inside #content.
+  const doc = $("#doc");
   const f = selected && selected.files.find(x=>x.path===curFile);
-  if(!f){ c.innerHTML=""; return; }
+  if(!f){ doc.innerHTML = ""; $("#empty").style.display = "flex"; return; }
+  $("#empty").style.display = "none";
   if(/\.md$/i.test(f.path)){
-    const d = document.createElement("div"); d.className="md"; d.innerHTML = renderMd(f.content); c.innerHTML=""; c.appendChild(d);
+    const d = document.createElement("div"); d.className="md"; d.innerHTML = renderMd(f.content);
+    doc.innerHTML = ""; doc.appendChild(d);
   } else {
-    const pre = document.createElement("pre"); pre.className="raw"; pre.textContent = f.content; c.innerHTML=""; c.appendChild(pre);
+    const pre = document.createElement("pre"); pre.className="raw"; pre.textContent = f.content;
+    doc.innerHTML = ""; doc.appendChild(pre);
   }
 }
 

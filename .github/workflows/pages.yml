@@ -46,11 +46,11 @@ jobs:
             --extra-skills "$HOME/.claude/skills" \
             --repo-name "${GITHUB_REPOSITORY}"
 
-      # enablement: true asks GitHub to turn Pages on (Source = GitHub Actions)
-      # automatically on the first run, so no manual Settings step is needed.
+      # Pages is already enabled for this repo (Source = GitHub Actions), so this
+      # just reads its config. We don't set enablement:true because the Actions
+      # token isn't permitted to *create* the Pages site — enabling is a one-time
+      # account-level action done via repo Settings / the Pages API.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
