@@ -1,5 +1,7 @@
 # claude-control
 
+See:[Link](https://tejas-techstack.github.io/claude-control/)
+
 One repo that upgrades Claude Code four ways: **25 composable skills**, a **loader for external skill collections** (gstack, Anthropic's official skills, your own repos), **token-saving repo tools**, and a **local skill-manager UI** with Claude built in. One-shot install on Linux, macOS, and Windows. Everything is free-only, privacy-respecting, and consent-gated — no skill will push, publish, or install system-wide without asking you first.
 
 ```
